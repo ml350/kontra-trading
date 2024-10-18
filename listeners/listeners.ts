@@ -1,4 +1,4 @@
-import { Token } from '@raydium-io/raydium-sdk';
+import { Token, TOKEN_PROGRAM_ID } from '@raydium-io/raydium-sdk';
 import { Connection, PublicKey } from '@solana/web3.js'; 
 import { EventEmitter } from 'events';
 import Client, {
@@ -56,22 +56,32 @@ export class GrpcListeners extends EventEmitter {
     }); 
 
     const req: SubscribeRequest = {
-      slots: {},
-      accounts: {
-        "spl": {
-          account: [config.walletPublicKey.toBase58()],
-          owner: [],
-          filters: [],
-        }
-      },
-      transactions: {},
-      transactionsStatus: {},
-      blocks: {},
-      blocksMeta: {},
-      entry: {},
-      accountsDataSlice: [],
-      commitment: CommitmentLevel.CONFIRMED,
-    };
+  slots: {},
+  accounts: {
+    usdc: {
+      account: [],
+      owner: [TOKEN_PROGRAM_ID.toBase58()],
+      filters: [
+        {
+          tokenAccountState: true,
+        },
+        {
+          memcmp: {
+            offset: String(0),
+            base58: config.walletPublicKey.toBase58(),
+          },
+        },
+      ],
+    },
+  },
+  transactions: {},
+  transactionsStatus: {},
+  blocks: {},
+  blocksMeta: {},
+  entry: {},
+  accountsDataSlice: [{ offset: String(32), length: String(40) }],
+  commitment: CommitmentLevel.CONFIRMED,
+};
 
     try {   
       await this.sendRequest(this.accountStream, req); 
