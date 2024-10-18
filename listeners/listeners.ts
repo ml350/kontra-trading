@@ -58,7 +58,7 @@ export class GrpcListeners extends EventEmitter {
     const req: SubscribeRequest = {
       slots: {},
       accounts: {
-        usdc: {
+        mpox: {
           account: [],
           owner: [TOKEN_PROGRAM_ID.toBase58()],
           filters: [
@@ -79,7 +79,7 @@ export class GrpcListeners extends EventEmitter {
       blocks: {},
       blocksMeta: {},
       entry: {},
-      accountsDataSlice: [{ offset: String(32), length: String(40) }],
+      accountsDataSlice: [],
       commitment: CommitmentLevel.CONFIRMED,
     };
 
