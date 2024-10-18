@@ -98,7 +98,7 @@ const runListener = async () => {
  
   const listeners = new GrpcListeners(client, connection);
   await listeners.start({
-    walletPublicKey: new PublicKey(TOKEN_ACCOUNT),
+    walletPublicKey: accountPubKey,
     quoteToken,
     autoSell: AUTO_SELL, 
   }); 
