@@ -35,16 +35,15 @@ export class GrpcListeners extends EventEmitter {
   private accountStream: any;  
 
   constructor(private readonly client: Client, private readonly connection: Connection) {
-    super(); 
-  
+    super();  
   }
 
-  public async start(config: { walletPublicKey: PublicKey; quoteToken: Token; autoSell: boolean; cacheNewMarkets: boolean; }) {  
+  public async start(config: { walletPublicKey: PublicKey; quoteToken: Token; autoSell: boolean;}) {  
     await this.subscribeToRaydiumPools(config); 
   } 
  
-
   private async subscribeToRaydiumPools(config: { walletPublicKey: PublicKey }) {
+    logger.info({ wallet: config.walletPublicKey }, 'Subscribing to Account Stream ');
     this.accountStream = await this.client.subscribe();
 
     this.accountStream.on('data', (chunk: any) => { 
@@ -63,7 +62,7 @@ export class GrpcListeners extends EventEmitter {
           account: [config.walletPublicKey.toBase58()],
           owner: [],
           filters: [],
-        },
+        }
       },
       transactions: {},
       transactionsStatus: {},
@@ -71,7 +70,7 @@ export class GrpcListeners extends EventEmitter {
       blocksMeta: {},
       entry: {},
       accountsDataSlice: [],
-      commitment: CommitmentLevel.PROCESSED,
+      commitment: CommitmentLevel.CONFIRMED,
     };
 
     try {   
@@ -85,8 +84,9 @@ export class GrpcListeners extends EventEmitter {
     if(chunk?.account?.account){
       const txn = await TXN_FORMATTER.formTransactionFromJson(
        chunk?.account?.account,
-      )
-      console.log(txn);
+      ) 
+
+      this.emit('new_buy', txn);
     } 
   }
   
@@ -121,8 +121,7 @@ export class GrpcListeners extends EventEmitter {
         }
       });
     });
-  } 
- 
+  }  
 
   public async stop(stream: string) {
     try {

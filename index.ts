@@ -22,8 +22,7 @@ import {
   MAX_SELL_RETRIES,
   AUTO_SELL, 
   COMPUTE_UNIT_LIMIT,
-  COMPUTE_UNIT_PRICE,
-  CACHE_NEW_MARKETS,  
+  COMPUTE_UNIT_PRICE, 
   SELL_SLIPPAGE, 
   TRANSACTION_EXECUTOR,
   CUSTOM_FEE,
@@ -101,12 +100,11 @@ const runListener = async () => {
   await listeners.start({
     walletPublicKey: new PublicKey(TOKEN_ACCOUNT),
     quoteToken,
-    autoSell: AUTO_SELL,
-    cacheNewMarkets: CACHE_NEW_MARKETS
+    autoSell: AUTO_SELL, 
   }); 
 
-  listeners.on(`new_buy`, async(updatedAccountInfo: KeyedAccountInfo) => { 
-    logger.trace(`New buy detected: ${updatedAccountInfo.accountId.toString()}`);
+  listeners.on(`new_buy`, async(chunk: any) => { 
+    logger.trace(`New buy detected: ${chunk}`);
   });
 
   listeners.on('wallet', async (updatedAccountInfo: KeyedAccountInfo) => {
