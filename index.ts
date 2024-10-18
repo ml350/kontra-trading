@@ -1,7 +1,7 @@
 import { MarketCache, PoolCache } from './cache';
-import { Listeners } from './listeners';
-import { Connection, KeyedAccountInfo, Keypair } from '@solana/web3.js';
-import { LIQUIDITY_STATE_LAYOUT_V4, MARKET_STATE_LAYOUT_V3, Token, TokenAmount } from '@raydium-io/raydium-sdk';
+import { GrpcListeners } from './listeners';
+import { Connection, KeyedAccountInfo, Keypair, PublicKey } from '@solana/web3.js';
+import { Token, TokenAmount } from '@raydium-io/raydium-sdk';
 import { AccountLayout, getAssociatedTokenAddressSync } from '@solana/spl-token';
 import { Bot, BotConfig } from './bot';
 import { DefaultTransactionExecutor, TransactionExecutor } from './transactions';
@@ -20,19 +20,25 @@ import {
   ONE_TOKEN_AT_A_TIME,
   AUTO_SELL_DELAY,
   MAX_SELL_RETRIES,
-  AUTO_SELL,
-  MAX_BUY_RETRIES,
-  AUTO_BUY_DELAY,
+  AUTO_SELL, 
   COMPUTE_UNIT_LIMIT,
   COMPUTE_UNIT_PRICE,
-  CACHE_NEW_MARKETS, 
-  BUY_SLIPPAGE,
+  CACHE_NEW_MARKETS,  
   SELL_SLIPPAGE, 
   TRANSACTION_EXECUTOR,
-  CUSTOM_FEE, 
+  CUSTOM_FEE,
+  TOKEN_ACCOUNT,
+  GRPC_ENDPOINT,
+  GRPC_TOKEN, 
 } from './helpers';  
 import { JitoTransactionExecutor } from './transactions/jito-rpc-transaction-executor';
+import Client from "@triton-one/yellowstone-grpc";
 
+const client = new Client(GRPC_ENDPOINT, GRPC_TOKEN,
+  {
+    "grpc.max_receive_message_length": 1024 * 1024 * 2048,
+  } 
+) 
 const connection = new Connection(RPC_ENDPOINT, {
   wsEndpoint: RPC_WEBSOCKET_ENDPOINT,
   commitment: COMMITMENT_LEVEL,
@@ -55,6 +61,7 @@ const runListener = async () => {
 
   const marketCache = new MarketCache(connection);
   const poolCache = new PoolCache();
+  const accountPubKey = new PublicKey(TOKEN_ACCOUNT);
   let txExecutor: TransactionExecutor;
 
   switch (TRANSACTION_EXECUTOR) { 
@@ -78,12 +85,9 @@ const runListener = async () => {
     oneTokenAtATime: ONE_TOKEN_AT_A_TIME, 
     autoSell: AUTO_SELL,
     autoSellDelay: AUTO_SELL_DELAY,
-    maxSellRetries: MAX_SELL_RETRIES,
-    autoBuyDelay: AUTO_BUY_DELAY,
-    maxBuyRetries: MAX_BUY_RETRIES,
+    maxSellRetries: MAX_SELL_RETRIES,  
     unitLimit: COMPUTE_UNIT_LIMIT,
-    unitPrice: COMPUTE_UNIT_PRICE, 
-    buySlippage: BUY_SLIPPAGE,
+    unitPrice: COMPUTE_UNIT_PRICE,  
     sellSlippage: SELL_SLIPPAGE, 
   };
 
@@ -93,14 +97,17 @@ const runListener = async () => {
     await marketCache.init({ quoteToken });
   }
  
-  const listeners = new Listeners(connection);
+  const listeners = new GrpcListeners(client, connection);
   await listeners.start({
-    walletPublicKey: wallet.publicKey,
+    walletPublicKey: new PublicKey(TOKEN_ACCOUNT),
     quoteToken,
     autoSell: AUTO_SELL,
-    cacheNewMarkets: CACHE_NEW_MARKETS,
+    cacheNewMarkets: CACHE_NEW_MARKETS
   }); 
- 
+
+  listeners.on(`new_buy`, async(updatedAccountInfo: KeyedAccountInfo) => { 
+    logger.trace(`New buy detected: ${updatedAccountInfo.accountId.toString()}`);
+  });
 
   listeners.on('wallet', async (updatedAccountInfo: KeyedAccountInfo) => {
     const accountData = AccountLayout.decode(updatedAccountInfo.accountInfo.data);

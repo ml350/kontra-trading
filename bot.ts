@@ -15,7 +15,7 @@ import {
   TOKEN_PROGRAM_ID,
 } from '@solana/spl-token';
 import { Liquidity, LiquidityPoolKeysV4, LiquidityStateV4, Percent, Token, TokenAmount } from '@raydium-io/raydium-sdk';
-import { MarketCache, PoolCache, SnipeListCache } from './cache'; 
+import { MarketCache, PoolCache } from './cache'; 
 import { TransactionExecutor } from './transactions';
 import { createPoolKeys, logger, NETWORK, sleep } from './helpers';
 import { Mutex } from 'async-mutex';
@@ -44,10 +44,7 @@ export interface BotConfig {
   sellSlippage: number; 
 }
 
-export class Bot { 
-
-  // snipe list
-  private readonly snipeListCache?: SnipeListCache;
+export class Bot {  
 
   // one token at the time
   private readonly mutex: Mutex;
@@ -64,12 +61,7 @@ export class Bot {
   ) {
     this.isJito = txExecutor instanceof JitoTransactionExecutor;
 
-    this.mutex = new Mutex(); 
-
-    if (this.config.useSnipeList) {
-      this.snipeListCache = new SnipeListCache();
-      this.snipeListCache.init();
-    }
+    this.mutex = new Mutex();  
   } 
 
   public async sell(accountId: PublicKey, rawAccount: RawAccount) {
