@@ -16,71 +16,13 @@ export class Listeners extends EventEmitter {
     quoteToken: Token;
     autoSell: boolean;
     cacheNewMarkets: boolean;
-  }) {
-    if (config.cacheNewMarkets) {
-      const openBookSubscription = await this.subscribeToOpenBookMarkets(config);
-      this.subscriptions.push(openBookSubscription);
-    }
-
-    const raydiumSubscription = await this.subscribeToRaydiumPools(config);
-    this.subscriptions.push(raydiumSubscription);
-
+  }) {  
     if (config.autoSell) {
       const walletSubscription = await this.subscribeToWalletChanges(config);
       this.subscriptions.push(walletSubscription);
     }
-  }
-
-  private async subscribeToOpenBookMarkets(config: { quoteToken: Token }) {
-    return this.connection.onProgramAccountChange(
-      MAINNET_PROGRAM_ID.OPENBOOK_MARKET,
-      async (updatedAccountInfo) => {
-        this.emit('market', updatedAccountInfo);
-      },
-      this.connection.commitment,
-      [
-        { dataSize: MARKET_STATE_LAYOUT_V3.span },
-        {
-          memcmp: {
-            offset: MARKET_STATE_LAYOUT_V3.offsetOf('quoteMint'),
-            bytes: config.quoteToken.mint.toBase58(),
-          },
-        },
-      ],
-    );
-  }
-
-  private async subscribeToRaydiumPools(config: { quoteToken: Token }) {
-    return this.connection.onProgramAccountChange(
-      MAINNET_PROGRAM_ID.AmmV4,
-      async (updatedAccountInfo) => {
-        this.emit('pool', updatedAccountInfo);
-      },
-      this.connection.commitment,
-      [
-        { dataSize: LIQUIDITY_STATE_LAYOUT_V4.span },
-        {
-          memcmp: {
-            offset: LIQUIDITY_STATE_LAYOUT_V4.offsetOf('quoteMint'),
-            bytes: config.quoteToken.mint.toBase58(),
-          },
-        },
-        {
-          memcmp: {
-            offset: LIQUIDITY_STATE_LAYOUT_V4.offsetOf('marketProgramId'),
-            bytes: MAINNET_PROGRAM_ID.OPENBOOK_MARKET.toBase58(),
-          },
-        },
-        {
-          memcmp: {
-            offset: LIQUIDITY_STATE_LAYOUT_V4.offsetOf('status'),
-            bytes: bs58.encode([6, 0, 0, 0, 0, 0, 0, 0]),
-          },
-        },
-      ],
-    );
-  }
-
+  } 
+ 
   private async subscribeToWalletChanges(config: { walletPublicKey: PublicKey }) {
     return this.connection.onProgramAccountChange(
       TOKEN_PROGRAM_ID,
