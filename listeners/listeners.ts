@@ -56,32 +56,32 @@ export class GrpcListeners extends EventEmitter {
     }); 
 
     const req: SubscribeRequest = {
-  slots: {},
-  accounts: {
-    usdc: {
-      account: [],
-      owner: [TOKEN_PROGRAM_ID.toBase58()],
-      filters: [
-        {
-          tokenAccountState: true,
+      slots: {},
+      accounts: {
+        usdc: {
+          account: [],
+          owner: [TOKEN_PROGRAM_ID.toBase58()],
+          filters: [
+            {
+              tokenAccountState: true,
+            },
+            {
+              memcmp: {
+                offset: String(0),
+                base58: config.walletPublicKey.toBase58(),
+              },
+            },
+          ],
         },
-        {
-          memcmp: {
-            offset: String(0),
-            base58: config.walletPublicKey.toBase58(),
-          },
-        },
-      ],
-    },
-  },
-  transactions: {},
-  transactionsStatus: {},
-  blocks: {},
-  blocksMeta: {},
-  entry: {},
-  accountsDataSlice: [{ offset: String(32), length: String(40) }],
-  commitment: CommitmentLevel.CONFIRMED,
-};
+      },
+      transactions: {},
+      transactionsStatus: {},
+      blocks: {},
+      blocksMeta: {},
+      entry: {},
+      accountsDataSlice: [{ offset: String(32), length: String(40) }],
+      commitment: CommitmentLevel.CONFIRMED,
+    };
 
     try {   
       await this.sendRequest(this.accountStream, req); 
