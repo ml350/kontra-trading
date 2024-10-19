@@ -105,12 +105,12 @@ const runListener = async () => {
 
   listeners.on(`new_swap`, async(chunk: any) => { 
     logger.trace(`New Swap detected!}`);
-    const tx = await connection.getTransaction(chunk.transaction.signature);
+    const tx = await connection.getTransaction(chunk.signature);
     if (!tx) {
-      logger.error(`Transaction not found: ${chunk.transaction.signature}`);
+      logger.error(`Transaction not found: ${chunk.signature}`);
       return;
     } else {
-      logger.trace(`Transaction found: ${chunk.transaction.signature}`);
+      logger.trace(`Transaction found: ${chunk.signature}`);
     }
   });
 
