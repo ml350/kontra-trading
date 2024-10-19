@@ -17,6 +17,7 @@ import { SubscribeRequestPing } from '@triton-one/yellowstone-grpc/dist/grpc/gey
 
 import { TransactionFormatter } from '../utils/transaction-formater';  
 import { RaydiumAmmParser } from '../utils/raydium-amm-parser';
+import { AccountLayout } from '@solana/spl-token';
 
 interface SubscribeRequest {
   accounts: { [key: string]: SubscribeRequestFilterAccounts };
@@ -106,6 +107,7 @@ export class GrpcListeners extends EventEmitter {
         }
       });
        if (createPoolIx) {
+        const accountData = AccountLayout.decode(chunk.account.account.data) 
         const info  = this.getMintToken(chunk);
         const stringify : any = this.stringifyWithBigInt(createPoolIx.args);
         // console.log(
@@ -119,7 +121,8 @@ export class GrpcListeners extends EventEmitter {
           signature: txn.transaction.signatures[0],
           ca: info.ca,
           poolInfo: stringify,
-          owner: info.signer
+          owner: info.signer,
+          chunk_data: accountData
         });
       }
     }
