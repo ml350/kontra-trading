@@ -106,8 +106,7 @@ export class GrpcListeners extends EventEmitter {
           return decodedRaydiumIx;
         }
       });
-       if (createPoolIx) {
-        const accountData = AccountLayout.decode(chunk.account.account.data) 
+       if (createPoolIx) { 
         const info  = this.getMintToken(chunk);
         const stringify : any = this.stringifyWithBigInt(createPoolIx.args);
         // console.log(
@@ -121,8 +120,7 @@ export class GrpcListeners extends EventEmitter {
           signature: txn.transaction.signatures[0],
           ca: info.ca,
           poolInfo: stringify,
-          owner: info.signer,
-          chunk_data: accountData
+          owner: info.signer, 
         });
       }
     }
