@@ -99,6 +99,7 @@ export class GrpcListeners extends EventEmitter {
       if (!decodedRaydiumIxs?.length) return;
       const createPoolIx = decodedRaydiumIxs.find((decodedRaydiumIx) => {
         if (
+          decodedRaydiumIx.name === "swapIn" ||
           decodedRaydiumIx.name === "swapOut"
         ) {
           return decodedRaydiumIx;
