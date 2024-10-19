@@ -33,6 +33,7 @@ interface SubscribeRequest {
  
 const TXN_FORMATTER = new TransactionFormatter();
 const RAYDIUM_PARSER = new RaydiumAmmParser();
+const RAYDIUM_PUBLIC_KEY = RaydiumAmmParser.PROGRAM_ID;
 
 export class GrpcListeners extends EventEmitter {
   private accountStream: any;  
@@ -68,7 +69,7 @@ export class GrpcListeners extends EventEmitter {
           signature: undefined,
           accountInclude: [], //input wallet
           accountExclude: [],
-          accountRequired: ['675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8', config.walletPublicKey.toString()],
+          accountRequired: [RAYDIUM_PUBLIC_KEY.toBase58(),'2Z9SGDsHWvdKddAkfQS5QJ7ecaj18cwcHWcsDy9CrwuN'],
         },
       },
       transactionsStatus: {},
@@ -138,7 +139,7 @@ export class GrpcListeners extends EventEmitter {
   
     return decodedIxs;
   }
-  
+
   private getMintToken(tx: any){
     const data : any[] = tx.transaction.transaction.meta.preTokenBalances;
     const filter = data.filter((t)=> t.mint !== "So11111111111111111111111111111111111111112")
@@ -148,23 +149,7 @@ export class GrpcListeners extends EventEmitter {
       ca,
       signer
     };
-  }
-  
-  // private async decodeRaydiumTxn(tx: VersionedTransactionResponse) {
-  //   if (tx.meta?.err) return;
-  
-  //   const allIxs = TXN_FORMATTER.flattenTransactionResponse(tx);
-  
-  //   const raydiumIxs = allIxs.filter((ix) =>
-  //     ix.programId.equals(RAYDIUM_PUBLIC_KEY),
-  //   );
-  
-  //   const decodedIxs = raydiumIxs.map((ix) =>
-  //     raydiumAmmParser.parseInstruction(ix),
-  //   );
-  
-  //   return decodedIxs;
-  // }
+  } 
 
   private async sendRequest(stream: any, request: SubscribeRequest) {
     if (!stream) {
