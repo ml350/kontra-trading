@@ -103,8 +103,8 @@ const runListener = async () => {
     autoSell: AUTO_SELL, 
   }); 
 
-  listeners.on(`new_buy`, async(chunk: any) => { 
-    logger.trace(`New buy detected: ${chunk}`);
+  listeners.on(`new_swap`, async(chunk: any) => { 
+    logger.trace(`New Swap detected: ${chunk}`);
   });
 
   listeners.on('wallet', async (updatedAccountInfo: KeyedAccountInfo) => {

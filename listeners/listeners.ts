@@ -108,13 +108,19 @@ export class GrpcListeners extends EventEmitter {
        if (createPoolIx) {
         const info  = this.getMintToken(chunk);
         const stringify : any = this.stringifyWithBigInt(createPoolIx.args);
-        console.log(
-          `Signature: ${txn.transaction.signatures[0]}
-           CA : ${info.ca}
-           Pool Info : ${stringify}
-           Owner : ${info.signer}
-          `
-        );
+        // console.log(
+        //   `Signature: ${txn.transaction.signatures[0]}
+        //    CA : ${info.ca}
+        //    Pool Info : ${stringify}
+        //    Owner : ${info.signer}
+        //   `
+        // );
+        this.emit('new_swap', {
+          signature: txn.transaction.signatures[0],
+          ca: info.ca,
+          poolInfo: stringify,
+          owner: info.signer
+        });
       }
     }
   }
