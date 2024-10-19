@@ -30,6 +30,7 @@
   },
   "devDependencies": {
     "@types/bn.js": "^5.1.5",
+    "@types/lodash": "^4.17.11",
     "prettier": "^3.2.4",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
