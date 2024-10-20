@@ -83,7 +83,7 @@ export class Bot {
       const tokenAmountIn = new TokenAmount(tokenIn, rawAccount.amount, true);
 
       if (tokenAmountIn.isZero()) {
-        logger.info({ mint: rawAccount.mint.toString() }, `Empty balance, can't sell`);
+        logger.warn({ mint: rawAccount.mint.toString() }, `Empty balance, can't sell`);
         return;
       }
 
@@ -93,8 +93,7 @@ export class Bot {
       }
 
       const market = await this.marketStorage.get(poolData.state.marketId.toString());
-      const poolKeys: LiquidityPoolKeysV4 = createPoolKeys(new PublicKey(poolData.id), poolData.state, market);
- 
+      const poolKeys: LiquidityPoolKeysV4 = createPoolKeys(new PublicKey(poolData.id), poolData.state, market); 
 
       for (let i = 0; i < this.config.maxSellRetries; i++) {
         try {
@@ -116,7 +115,7 @@ export class Bot {
           );
 
           if (result.confirmed) {
-            logger.info(
+            logger.trace(
               {
                 dex: `https://dexscreener.com/solana/${rawAccount.mint.toString()}?maker=${this.config.wallet.publicKey}`,
                 mint: rawAccount.mint.toString(),

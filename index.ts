@@ -1,7 +1,7 @@
 import { MarketCache, PoolCache } from './cache';
 import { GrpcListeners } from './listeners';
 import { Connection, KeyedAccountInfo, Keypair, PublicKey } from '@solana/web3.js';
-import { Token, TokenAmount } from '@raydium-io/raydium-sdk';
+import { LIQUIDITY_STATE_LAYOUT_V4, MAINNET_PROGRAM_ID, Token, TokenAmount } from '@raydium-io/raydium-sdk';
 import { AccountLayout, getAssociatedTokenAddressSync } from '@solana/spl-token';
 import { Bot, BotConfig } from './bot';
 import { DefaultTransactionExecutor, TransactionExecutor } from './transactions';
@@ -32,6 +32,7 @@ import {
 } from './helpers';  
 import { JitoTransactionExecutor } from './transactions/jito-rpc-transaction-executor';
 import Client from "@triton-one/yellowstone-grpc";
+import { log } from 'console';
 
 const client = new Client(GRPC_ENDPOINT, GRPC_TOKEN,
   {
@@ -52,6 +53,33 @@ function printDetails(wallet: Keypair, quoteToken: Token, bot: Bot) {
  
 
   logger.info('Bot is running! Press CTRL + C to stop it.');
+}
+
+async function fetchLiquidityStateByMintAddress(
+  connection: Connection,
+  mintAddress: string
+) {
+  const mintPubKey = new PublicKey(mintAddress);
+
+  // Fetching all program accounts for Raydium's liquidity program
+  const accounts = await connection.getProgramAccounts(MAINNET_PROGRAM_ID.AmmV4, {
+    filters: [
+      {
+        // Filtering by the mint address (either base or quote token in the pool)
+        memcmp: {
+          offset: LIQUIDITY_STATE_LAYOUT_V4.offsetOf('baseMint'), // Adjust based on your token's role in the pool (base/quote)
+          bytes: mintPubKey.toBase58(),
+        },
+      },
+    ],
+  });
+
+  // Deserializing each account data to get LiquidityStateV4
+  const liquidityStates = accounts.map((account) => {
+    return LIQUIDITY_STATE_LAYOUT_V4.decode(account.account.data);
+  });
+
+  return liquidityStates;
 }
 
 const runListener = async () => {
@@ -103,8 +131,11 @@ const runListener = async () => {
     autoSell: AUTO_SELL, 
   }); 
 
-  listeners.on(`new_swap`, async(chunk: any) => { 
-    logger.trace(`New Swap detected!`);
+  const poolState = await fetchLiquidityStateByMintAddress(connection, TOKEN_ACCOUNT);
+
+  logger.info(`Found ${poolState.length} liquidity pools for TokenA`);
+
+  listeners.on(`new_swap`, async(chunk: any) => {  
     const tx = await connection.getParsedTransaction(chunk.signature, { maxSupportedTransactionVersion: 0});
     if (!tx) {
       logger.error(`Transaction not found: ${chunk.signature}`);
@@ -123,7 +154,7 @@ const runListener = async () => {
 
       // Find WSOL and TokenA accounts using their mint addresses
       const wsolMint = "So11111111111111111111111111111111111111112"; // WSOL mint
-      const tokenAMint = "mpoxP5wyoR3eRW8L9bZjGPFtCsmX8WcqU5BHxFW1xkn"; // Replace with actual TokenA mint
+      const tokenAMint = TOKEN_ACCOUNT; // Replace with actual TokenA mint
 
       const wsolPreBalance = preBalances.find(balance => balance.mint === wsolMint);
       const tokenAPreBalance = preBalances.find(balance => balance.mint === tokenAMint);
@@ -140,23 +171,15 @@ const runListener = async () => {
 
         // Buy (SOL -> TokenA) if WSOL decreases and TokenA increases
         if (postWsolAmount! > preWsolAmount! && postTokenAAmount! < preTokenAAmount!) {
-          logger.info(`Detected a Buy transaction: ${chunk.signature}`);
+          logger.trace(`Detected a Buy transaction: \n${chunk.signature}`); 
+
+          //await bot.sell(chunk.accountId, accountData);
         } 
       } else {
         logger.error(`Could not find matching WSOL or TokenA accounts in the transaction.`);
       }
     }
-  });
-
-  listeners.on('wallet', async (updatedAccountInfo: KeyedAccountInfo) => {
-    const accountData = AccountLayout.decode(updatedAccountInfo.accountInfo.data);
-
-    if (accountData.mint.equals(quoteToken.mint)) {
-      return;
-    }
-
-    await bot.sell(updatedAccountInfo.accountId, accountData);
-  });
+  }); 
 
   printDetails(wallet, quoteToken, bot);
 };
