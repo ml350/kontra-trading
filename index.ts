@@ -139,7 +139,7 @@ const runListener = async () => {
         const postTokenAAmount = tokenAPostBalance.uiTokenAmount.uiAmount;
 
         // Buy (SOL -> TokenA) if WSOL decreases and TokenA increases
-        if (postWsolAmount! < preWsolAmount! && postTokenAAmount! > preTokenAAmount!) {
+        if (postWsolAmount! > preWsolAmount! && postTokenAAmount! < preTokenAAmount!) {
           logger.info(`Detected a Buy transaction: ${chunk.signature}`);
         } 
       } else {
