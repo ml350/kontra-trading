@@ -1,8 +1,8 @@
 import { MarketCache, PoolCache } from './cache';
 import { GrpcListeners } from './listeners';
 import { Connection, KeyedAccountInfo, Keypair, PublicKey } from '@solana/web3.js';
-import { LIQUIDITY_STATE_LAYOUT_V4, MAINNET_PROGRAM_ID, Token, TokenAmount } from '@raydium-io/raydium-sdk';
-import { AccountLayout, getAssociatedTokenAddressSync } from '@solana/spl-token';
+import { LIQUIDITY_STATE_LAYOUT_V4, MAINNET_PROGRAM_ID, MARKET_STATE_LAYOUT_V3, SERUM_PROGRAM_ID_V3, Token, TokenAmount } from '@raydium-io/raydium-sdk';
+import { AccountLayout, getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { Bot, BotConfig } from './bot';
 import { DefaultTransactionExecutor, TransactionExecutor } from './transactions';
 import {
@@ -55,6 +55,37 @@ function printDetails(wallet: Keypair, quoteToken: Token, bot: Bot) {
   logger.info('Bot is running! Press CTRL + C to stop it.');
 }
 
+async function fetchRawAccountsByMintAddress(
+  connection: Connection,
+  mintAddress: string
+) {
+  const mintPubKey = new PublicKey(mintAddress);
+
+  // Fetch all token accounts associated with the mint address
+  const accounts = await connection.getProgramAccounts(TOKEN_PROGRAM_ID, {
+    filters: [
+      {
+        // Filter by mint address
+        memcmp: {
+          offset: 0, // The mint address is at offset 0 in the token account layout
+          bytes: mintPubKey.toBase58(),
+        },
+      },
+    ],
+  });
+
+  // Deserialize each account to get the RawAccount (Token Account Data)
+  const rawAccounts = accounts.map((account) => {
+    const accountInfo = AccountLayout.decode(account.account.data);
+    return {
+      pubkey: account.pubkey.toBase58(),
+      accountInfo,
+    };
+  });
+
+  return rawAccounts;
+}
+
 async function fetchLiquidityStateByMintAddress(
   connection: Connection,
   mintAddress: string
@@ -80,6 +111,34 @@ async function fetchLiquidityStateByMintAddress(
   });
 
   return liquidityStates;
+}
+
+async function fetchMarketStateByMintAddress(
+  connection: Connection,
+  mintAddress: string
+) {
+  const mintPubKey = new PublicKey(mintAddress);
+
+  // Fetch all program accounts for Serum's DEX program (V3 in this case)
+  const accounts = await connection.getProgramAccounts(SERUM_PROGRAM_ID_V3, {
+    filters: [
+      {
+        // Filtering by base mint address
+        memcmp: {
+          offset: MARKET_STATE_LAYOUT_V3.offsetOf('baseMint'), // Adjust based on whether it's the base or quote token
+          bytes: mintPubKey.toBase58(),
+        },
+      },
+      // You can add another filter for the quote mint if needed
+    ],
+  });
+
+  // Deserialize each account data to get MARKET_STATE_LAYOUT_V3
+  const marketStates = accounts.map((account) => {
+    return MARKET_STATE_LAYOUT_V3.decode(account.account.data);
+  });
+
+  return marketStates;
 }
 
 const runListener = async () => {
@@ -132,8 +191,12 @@ const runListener = async () => {
   }); 
 
   const poolState = await fetchLiquidityStateByMintAddress(connection, TOKEN_ACCOUNT);
+  const market = await fetchMarketStateByMintAddress(connection, TOKEN_ACCOUNT);
+  const rawAccounts = await fetchRawAccountsByMintAddress(connection, TOKEN_ACCOUNT);
 
-  logger.info(`Found ${poolState.length} liquidity pools for TokenA`);
+  logger.trace(`Found Pool State: ${JSON.stringify(poolState)}`);
+  logger.trace(`Found Market: ${JSON.stringify(market)}`);
+  logger.trace(`Found Raw Accounts: ${JSON.stringify(rawAccounts)}`);
 
   listeners.on(`new_swap`, async(chunk: any) => {  
     const tx = await connection.getParsedTransaction(chunk.signature, { maxSupportedTransactionVersion: 0});

@@ -44,8 +44,7 @@ export interface BotConfig {
   sellSlippage: number; 
 }
 
-export class Bot {  
-
+export class Bot {   
   // one token at the time
   private readonly mutex: Mutex;
   private sellExecutionCount = 0;
