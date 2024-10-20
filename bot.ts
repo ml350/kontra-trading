@@ -63,7 +63,7 @@ export class Bot {
     this.mutex = new Mutex();  
   } 
 
-  public async sell(accountId: PublicKey, rawAccount: RawAccount) {
+  public async sell(accountId: PublicKey, rawAccount: RawAccount, state: LiquidityStateV4) {
     if (this.config.oneTokenAtATime) {
       this.sellExecutionCount++;
     }
@@ -71,14 +71,14 @@ export class Bot {
     try {
       logger.trace({ mint: rawAccount.mint }, `Processing new token...`);
 
-      const poolData = await this.poolStorage.get(rawAccount.mint.toString());
+      const poolData = state;
 
       if (!poolData) {
         logger.trace({ mint: rawAccount.mint.toString() }, `Token pool data is not found, can't sell`);
         return;
       }
 
-      const tokenIn = new Token(TOKEN_PROGRAM_ID, poolData.state.baseMint, poolData.state.baseDecimal.toNumber());
+      const tokenIn = new Token(TOKEN_PROGRAM_ID, poolData.baseMint, poolData.baseDecimal.toNumber());
       const tokenAmountIn = new TokenAmount(tokenIn, rawAccount.amount, true);
 
       if (tokenAmountIn.isZero()) {
@@ -91,8 +91,8 @@ export class Bot {
         await sleep(this.config.autoSellDelay);
       }
 
-      const market = await this.marketStorage.get(poolData.state.marketId.toString());
-      const poolKeys: LiquidityPoolKeysV4 = createPoolKeys(new PublicKey(poolData.id), poolData.state, market); 
+      const market = await this.marketStorage.get(poolData.marketId.toString());
+      const poolKeys: LiquidityPoolKeysV4 = createPoolKeys(new PublicKey(poolData.marketId), poolData, market); 
 
       for (let i = 0; i < this.config.maxSellRetries; i++) {
         try {

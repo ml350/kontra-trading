@@ -65,9 +65,12 @@ async function fetchRawAccountsByMintAddress(
   const accounts = await connection.getProgramAccounts(TOKEN_PROGRAM_ID, {
     filters: [
       {
+        dataSize: 165,
+      },
+      {
         // Filter by mint address
         memcmp: {
-          offset: 0, // The mint address is at offset 0 in the token account layout
+          offset: 32, // The mint address is at offset 0 in the token account layout
           bytes: mintPubKey.toBase58(),
         },
       },
@@ -120,7 +123,7 @@ async function fetchMarketStateByMintAddress(
   const mintPubKey = new PublicKey(mintAddress);
 
   // Fetch all program accounts for Serum's DEX program (V3 in this case)
-  const accounts = await connection.getProgramAccounts(SERUM_PROGRAM_ID_V3, {
+  const accounts = await connection.getProgramAccounts(MAINNET_PROGRAM_ID.OPENBOOK_MARKET, {
     filters: [
       {
         // Filtering by base mint address
@@ -193,10 +196,9 @@ const runListener = async () => {
   const poolState = await fetchLiquidityStateByMintAddress(connection, TOKEN_ACCOUNT);
   const market = await fetchMarketStateByMintAddress(connection, TOKEN_ACCOUNT);
   const rawAccounts = await fetchRawAccountsByMintAddress(connection, TOKEN_ACCOUNT);
-
-  logger.trace(`Found Pool State: ${JSON.stringify(poolState)}`);
-  logger.trace(`Found Market: ${JSON.stringify(market)}`);
-  logger.trace(`Found Raw Accounts: ${JSON.stringify(rawAccounts)}`);
+  logger.trace(`RawAccounts: ${JSON.stringify(rawAccounts)}`); 
+  logger.trace({ token: TOKEN_ACCOUNT }, `Fetching pool and market state`); 
+  //logger.trace(`Found Raw Accounts: ${JSON.stringify(rawAccounts)}`);
 
   listeners.on(`new_swap`, async(chunk: any) => {  
     const tx = await connection.getParsedTransaction(chunk.signature, { maxSupportedTransactionVersion: 0});
