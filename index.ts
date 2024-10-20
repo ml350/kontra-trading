@@ -110,7 +110,35 @@ const runListener = async () => {
       logger.error(`Transaction not found: ${chunk.signature}`);
       return;
     } else {
-      logger.trace(`Transaction found: ${chunk.signature}`);
+      logger.trace(`Transaction found: ${tx}`);
+    
+      // Extract relevant accounts and pre-/post-balances
+      const preBalances = tx.meta?.preTokenBalances;
+      const postBalances = tx.meta?.postTokenBalances;
+      
+      // Find WSOL and TokenA changes
+      const wsolAccount = preBalances?.find(balance => balance.mint === QUOTE_MINT);
+      const tokenAAccount = preBalances?.find(balance => balance.mint === TOKEN_ACCOUNT);
+
+      if (wsolAccount && tokenAAccount) {
+        const preWsolAmount = wsolAccount.uiTokenAmount.uiAmount;
+        const postWsolAmount = postBalances?.find(balance => balance.accountIndex === wsolAccount.accountIndex)?.uiTokenAmount.uiAmount;
+        
+        const preTokenAAmount = tokenAAccount.uiTokenAmount.uiAmount;
+        const postTokenAAmount = postBalances?.find(balance => balance.accountIndex === tokenAAccount.accountIndex)?.uiTokenAmount.uiAmount;
+        
+        if (preWsolAmount && postWsolAmount && preTokenAAmount && postTokenAAmount) {
+          // Buy (SOL -> TokenA) if WSOL decreases and TokenA increases
+          if (postWsolAmount < preWsolAmount && postTokenAAmount > preTokenAAmount) {
+            logger.info(`Detected a Buy transaction: Swapped SOL for TokenA.`);
+          }
+          // Sell (TokenA -> SOL) if TokenA decreases and WSOL increases
+          else if (postWsolAmount > preWsolAmount && postTokenAAmount < preTokenAAmount) {
+            logger.info(`Detected a Sell transaction: Swapped TokenA for SOL.`);
+          }
+        }
+      }
+
     }
   });
 
