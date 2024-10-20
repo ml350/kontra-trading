@@ -110,35 +110,47 @@ const runListener = async () => {
       logger.error(`Transaction not found: ${chunk.signature}`);
       return;
     } else {
-      logger.trace(`Transaction found: ${tx}`);
+      logger.trace(`Transaction found: ${chunk.signature}`);
     
-      // Extract relevant accounts and pre-/post-balances
-      const preBalances = tx.meta?.preTokenBalances;
-      const postBalances = tx.meta?.postTokenBalances;
-      
-      // Find WSOL and TokenA changes
-      const wsolAccount = preBalances?.find(balance => balance.mint === QUOTE_MINT);
-      const tokenAAccount = preBalances?.find(balance => balance.mint === TOKEN_ACCOUNT);
+    // Get pre/post balances and account keys
+    const preBalances = tx.meta?.preTokenBalances;
+    const postBalances = tx.meta?.postTokenBalances;
+    const accountKeys = tx.transaction.message.accountKeys;
 
-      if (wsolAccount && tokenAAccount) {
-        const preWsolAmount = wsolAccount.uiTokenAmount.uiAmount;
-        const postWsolAmount = postBalances?.find(balance => balance.accountIndex === wsolAccount.accountIndex)?.uiTokenAmount.uiAmount;
-        
-        const preTokenAAmount = tokenAAccount.uiTokenAmount.uiAmount;
-        const postTokenAAmount = postBalances?.find(balance => balance.accountIndex === tokenAAccount.accountIndex)?.uiTokenAmount.uiAmount;
-        
-        if (preWsolAmount && postWsolAmount && preTokenAAmount && postTokenAAmount) {
-          // Buy (SOL -> TokenA) if WSOL decreases and TokenA increases
-          if (postWsolAmount < preWsolAmount && postTokenAAmount > preTokenAAmount) {
-            logger.info(`Detected a Buy transaction: Swapped SOL for TokenA.`);
-          }
-          // Sell (TokenA -> SOL) if TokenA decreases and WSOL increases
-          else if (postWsolAmount > preWsolAmount && postTokenAAmount < preTokenAAmount) {
-            logger.info(`Detected a Sell transaction: Swapped TokenA for SOL.`);
-          }
-        }
+    // Ensure we have valid balances to compare
+    if (!preBalances || !postBalances || !accountKeys) {
+      logger.error(`Missing token balance or account key information`);
+      return;
+    }
+
+    // Find WSOL and TokenA accounts using their mint addresses
+    const wsolMint = "So11111111111111111111111111111111111111112"; // WSOL mint
+    const tokenAMint = "YourTokenAMintAddress"; // Replace with actual TokenA mint
+
+    const wsolPreBalance = preBalances.find(balance => balance.mint === wsolMint);
+    const tokenAPreBalance = preBalances.find(balance => balance.mint === tokenAMint);
+
+    const wsolPostBalance = postBalances.find(balance => balance.mint === wsolMint);
+    const tokenAPostBalance = postBalances.find(balance => balance.mint === tokenAMint);
+
+    if (wsolPreBalance && tokenAPreBalance && wsolPostBalance && tokenAPostBalance) {
+      const preWsolAmount = wsolPreBalance.uiTokenAmount.uiAmount;
+      const postWsolAmount = wsolPostBalance.uiTokenAmount.uiAmount;
+
+      const preTokenAAmount = tokenAPreBalance.uiTokenAmount.uiAmount;
+      const postTokenAAmount = tokenAPostBalance.uiTokenAmount.uiAmount;
+
+      // Buy (SOL -> TokenA) if WSOL decreases and TokenA increases
+      if (postWsolAmount! < preWsolAmount! && postTokenAAmount! > preTokenAAmount!) {
+        logger.info(`Detected a Buy transaction: Swapped SOL for TokenA.`);
       }
-
+      // Sell (TokenA -> SOL) if TokenA decreases and WSOL increases
+      else if (postWsolAmount! > preWsolAmount! && postTokenAAmount! < preTokenAAmount!) {
+        logger.info(`Detected a Sell transaction: Swapped TokenA for SOL.`);
+      }
+    } else {
+      logger.error(`Could not find matching WSOL or TokenA accounts in the transaction.`);
+    }
     }
   });
 
