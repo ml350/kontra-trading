@@ -147,9 +147,7 @@ async function fetchMarketStateByMintAddress(
 const runListener = async () => {
   logger.level = LOG_LEVEL;
   logger.info('Bot is starting...');
-
-  const marketCache = new MarketCache(connection);
-  const poolCache = new PoolCache();
+ 
   const accountPubKey = new PublicKey(TOKEN_ACCOUNT);
   let txExecutor: TransactionExecutor;
 
@@ -182,9 +180,6 @@ const runListener = async () => {
 
   const bot = new Bot(connection, txExecutor, botConfig); 
 
-  if (PRE_LOAD_EXISTING_MARKETS) {
-    await marketCache.init({ quoteToken });
-  }
  
   const listeners = new GrpcListeners(client, connection);
   await listeners.start({
@@ -195,7 +190,6 @@ const runListener = async () => {
 
   const poolState = await fetchLiquidityStateByMintAddress(connection, TOKEN_ACCOUNT);
   const market = await fetchMarketStateByMintAddress(connection, TOKEN_ACCOUNT);
-  const rawAccounts = await fetchRawAccountsByMintAddress(connection, TOKEN_ACCOUNT);
 
   logger.trace({ token: TOKEN_ACCOUNT }, `Fetching pool and market state`); 
   //logger.trace(`Found Raw Accounts: ${JSON.stringify(rawAccounts)}`);
