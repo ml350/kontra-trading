@@ -203,6 +203,7 @@ const runListener = async () => {
       logger.error(`Transaction not found: ${chunk.signature}`);
       return;
     } else { 
+      logger.trace(`New Swap detected: \n${chunk.signature}`);
       // Get pre/post balances and account keys
       const preBalances = tx.meta?.preTokenBalances;
       const postBalances = tx.meta?.postTokenBalances;
