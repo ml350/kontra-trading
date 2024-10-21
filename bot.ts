@@ -14,10 +14,10 @@ import {
   RawAccount,
   TOKEN_PROGRAM_ID,
 } from '@solana/spl-token';
-import { Liquidity, LiquidityPoolKeysV4, LiquidityStateV4, Percent, Token, TokenAmount } from '@raydium-io/raydium-sdk';
+import { Liquidity, LiquidityPoolKeysV4, LiquidityStateV4, MarketStateLayoutV3, Percent, Token, TokenAmount } from '@raydium-io/raydium-sdk';
 import { MarketCache, PoolCache } from './cache'; 
 import { TransactionExecutor } from './transactions';
-import { createPoolKeys, logger, NETWORK, sleep } from './helpers';
+import { createPoolKeys, logger, MinimalMarketLayoutV3, NETWORK, sleep } from './helpers';
 import { Mutex } from 'async-mutex';
 import { JitoTransactionExecutor } from './transactions/jito-rpc-transaction-executor';
 
@@ -63,7 +63,7 @@ export class Bot {
     this.mutex = new Mutex();  
   } 
 
-  public async sell(accountId: PublicKey, rawAccount: RawAccount, state: LiquidityStateV4) {
+  public async sell(accountId: PublicKey, rawAccount: RawAccount, state: any, market: any) {
     if (this.config.oneTokenAtATime) {
       this.sellExecutionCount++;
     }
@@ -90,8 +90,7 @@ export class Bot {
         logger.debug({ mint: rawAccount.mint }, `Waiting for ${this.config.autoSellDelay} ms before sell`);
         await sleep(this.config.autoSellDelay);
       }
-
-      const market = await this.marketStorage.get(poolData.marketId.toString());
+  
       const poolKeys: LiquidityPoolKeysV4 = createPoolKeys(new PublicKey(poolData.marketId), poolData, market); 
 
       for (let i = 0; i < this.config.maxSellRetries; i++) {

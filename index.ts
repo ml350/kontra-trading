@@ -2,7 +2,7 @@ import { MarketCache, PoolCache } from './cache';
 import { GrpcListeners } from './listeners';
 import { Connection, KeyedAccountInfo, Keypair, PublicKey } from '@solana/web3.js';
 import { LIQUIDITY_STATE_LAYOUT_V4, MAINNET_PROGRAM_ID, MARKET_STATE_LAYOUT_V3, SERUM_PROGRAM_ID_V3, Token, TokenAmount } from '@raydium-io/raydium-sdk';
-import { AccountLayout, getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { AccountLayout, AccountState, getAssociatedTokenAddressSync, MintLayout, RawAccount, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { Bot, BotConfig } from './bot';
 import { DefaultTransactionExecutor, TransactionExecutor } from './transactions';
 import {
@@ -28,7 +28,9 @@ import {
   CUSTOM_FEE,
   TOKEN_ACCOUNT,
   GRPC_ENDPOINT,
-  GRPC_TOKEN, 
+  GRPC_TOKEN,
+  getMinimalMarketV3,
+  MINIMAL_MARKET_STATE_LAYOUT_V3, 
 } from './helpers';  
 import { JitoTransactionExecutor } from './transactions/jito-rpc-transaction-executor';
 import Client from "@triton-one/yellowstone-grpc";
@@ -55,38 +57,20 @@ function printDetails(wallet: Keypair, quoteToken: Token, bot: Bot) {
   logger.info('Bot is running! Press CTRL + C to stop it.');
 }
 
-async function fetchRawAccountsByMintAddress(
+async function fetchRawAccountByMintAddress(
   connection: Connection,
   mintAddress: string
 ) {
-  const mintPubKey = new PublicKey(mintAddress);
+  // Fetch account info
+  const accountInfo = await connection.getAccountInfo(new PublicKey(mintAddress));
 
-  // Fetch all token accounts associated with the mint address
-  const accounts = await connection.getProgramAccounts(TOKEN_PROGRAM_ID, {
-    filters: [
-      {
-        dataSize: 165,
-      },
-      {
-        // Filter by mint address
-        memcmp: {
-          offset: 32, // The mint address is at offset 0 in the token account layout
-          bytes: mintPubKey.toBase58(),
-        },
-      },
-    ],
-  });
+  if (!accountInfo) {
+    throw new Error('Account not found');
+  }
 
-  // Deserialize each account to get the RawAccount (Token Account Data)
-  const rawAccounts = accounts.map((account) => {
-    const accountInfo = AccountLayout.decode(account.account.data);
-    return {
-      pubkey: account.pubkey.toBase58(),
-      accountInfo,
-    };
-  });
-
-  return rawAccounts;
+  return { 
+    accountInfo,
+  };
 }
 
 async function fetchLiquidityStateByMintAddress(
@@ -124,7 +108,12 @@ async function fetchMarketStateByMintAddress(
 
   // Fetch all program accounts for Serum's DEX program (V3 in this case)
   const accounts = await connection.getProgramAccounts(MAINNET_PROGRAM_ID.OPENBOOK_MARKET, {
+    dataSlice: {
+      offset: MARKET_STATE_LAYOUT_V3.offsetOf('eventQueue'),
+      length: MINIMAL_MARKET_STATE_LAYOUT_V3.span,
+    },
     filters: [
+      { dataSize: MARKET_STATE_LAYOUT_V3.span },
       {
         // Filtering by base mint address
         memcmp: {
@@ -138,7 +127,7 @@ async function fetchMarketStateByMintAddress(
 
   // Deserialize each account data to get MARKET_STATE_LAYOUT_V3
   const marketStates = accounts.map((account) => {
-    return MARKET_STATE_LAYOUT_V3.decode(account.account.data);
+    return MINIMAL_MARKET_STATE_LAYOUT_V3.decode(account.account.data);
   });
 
   return marketStates;
@@ -194,8 +183,9 @@ const runListener = async () => {
   }); 
 
   const poolState = await fetchLiquidityStateByMintAddress(connection, TOKEN_ACCOUNT);
-  const market = await fetchMarketStateByMintAddress(connection, TOKEN_ACCOUNT);
-  const rawAccounts = await fetchRawAccountsByMintAddress(connection, TOKEN_ACCOUNT);
+  const market = await fetchMarketStateByMintAddress(connection, TOKEN_ACCOUNT); 
+  const rawAccounts = await fetchRawAccountByMintAddress(connection, TOKEN_ACCOUNT);
+  const accountData = AccountLayout.decode(rawAccounts.accountInfo.data);
   logger.trace(`RawAccounts: ${JSON.stringify(rawAccounts)}`); 
   logger.trace({ token: TOKEN_ACCOUNT }, `Fetching pool and market state`); 
   //logger.trace(`Found Raw Accounts: ${JSON.stringify(rawAccounts)}`);
@@ -238,7 +228,7 @@ const runListener = async () => {
         if (postWsolAmount! > preWsolAmount! && postTokenAAmount! < preTokenAAmount!) {
           logger.trace(`Detected a Buy transaction: \n${chunk.signature}`); 
 
-          //await bot.sell(chunk.accountId, accountData);
+          await bot.sell(chunk.accountId, accountData, poolState, market);
         } 
       } else {
         logger.error(`Could not find matching WSOL or TokenA accounts in the transaction.`);
