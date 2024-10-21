@@ -1,7 +1,7 @@
 import { MarketCache, PoolCache } from './cache';
 import { GrpcListeners } from './listeners';
 import { Connection, KeyedAccountInfo, Keypair, PublicKey } from '@solana/web3.js';
-import { LIQUIDITY_STATE_LAYOUT_V4, MAINNET_PROGRAM_ID, MARKET_STATE_LAYOUT_V3, SERUM_PROGRAM_ID_V3, Token, TokenAmount } from '@raydium-io/raydium-sdk';
+import { LIQUIDITY_STATE_LAYOUT_V4, MAINNET_PROGRAM_ID, Market, MARKET_STATE_LAYOUT_V3, SERUM_PROGRAM_ID_V3, Token, TokenAmount } from '@raydium-io/raydium-sdk';
 import { AccountLayout, getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { Bot, BotConfig } from './bot';
 import { DefaultTransactionExecutor, TransactionExecutor } from './transactions';
@@ -28,11 +28,12 @@ import {
   CUSTOM_FEE,
   TOKEN_ACCOUNT,
   GRPC_ENDPOINT,
-  GRPC_TOKEN, 
+  GRPC_TOKEN,
+  MINIMAL_MARKET_STATE_LAYOUT_V3,
+  getMinimalMarketV3, 
 } from './helpers';  
 import { JitoTransactionExecutor } from './transactions/jito-rpc-transaction-executor';
-import Client from "@triton-one/yellowstone-grpc";
-import { log } from 'console';
+import Client from "@triton-one/yellowstone-grpc"; 
 
 const client = new Client(GRPC_ENDPOINT, GRPC_TOKEN,
   {
@@ -124,16 +125,20 @@ async function fetchMarketStateByMintAddress(
 
   // Fetch all program accounts for Serum's DEX program (V3 in this case)
   const accounts = await connection.getProgramAccounts(MAINNET_PROGRAM_ID.OPENBOOK_MARKET, {
-    filters: [
-      {
-        // Filtering by base mint address
-        memcmp: {
-          offset: MARKET_STATE_LAYOUT_V3.offsetOf('baseMint'), // Adjust based on whether it's the base or quote token
-          bytes: mintPubKey.toBase58(),
-        },
+    commitment: connection.commitment,
+      dataSlice: {
+        offset: MARKET_STATE_LAYOUT_V3.offsetOf('eventQueue'),
+        length: MINIMAL_MARKET_STATE_LAYOUT_V3.span,
       },
-      // You can add another filter for the quote mint if needed
-    ],
+      filters: [
+        { dataSize: MARKET_STATE_LAYOUT_V3.span },
+        {
+          memcmp: {
+            offset: MARKET_STATE_LAYOUT_V3.offsetOf('quoteMint'),
+            bytes: mintPubKey.toBase58(),
+          },
+        },
+      ]
   });
 
   // Deserialize each account data to get MARKET_STATE_LAYOUT_V3
@@ -178,8 +183,7 @@ const runListener = async () => {
     sellSlippage: SELL_SLIPPAGE, 
   };
 
-  const bot = new Bot(connection, txExecutor, botConfig); 
-
+  const bot = new Bot(connection, txExecutor, botConfig);  
  
   const listeners = new GrpcListeners(client, connection);
   await listeners.start({
@@ -189,9 +193,9 @@ const runListener = async () => {
   }); 
 
   const poolState = await fetchLiquidityStateByMintAddress(connection, TOKEN_ACCOUNT); 
-
+  const minimal = await getMinimalMarketV3(connection, poolState[0].marketId, connection.commitment);
   logger.trace({ token: TOKEN_ACCOUNT }, `Fetching pool and market state`); 
-  logger.trace(`Pool State: ${JSON.stringify(poolState)}`);
+  logger.trace(`Pool State: ${JSON.stringify(minimal)}`);
 
   listeners.on(`new_swap`, async(chunk: any) => {  
     const tx = await connection.getParsedTransaction(chunk.signature, { maxSupportedTransactionVersion: 0});
@@ -231,7 +235,7 @@ const runListener = async () => {
         if (postWsolAmount! > preWsolAmount! && postTokenAAmount! < preTokenAAmount!) {
           logger.trace(`Detected a Buy transaction: \n${chunk.signature}`); 
 
-          //await bot.sell(chunk.accountId, accountData);
+          await bot.sell(chunk.accountId, TOKEN_ACCOUNT, poolState[0], minimal);
         } 
       } else {
         logger.error(`Could not find matching WSOL or TokenA accounts in the transaction.`);

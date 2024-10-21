@@ -14,7 +14,7 @@ import {
   RawAccount,
   TOKEN_PROGRAM_ID,
 } from '@solana/spl-token';
-import { Liquidity, LiquidityPoolKeysV4, LiquidityStateV4, MarketStateLayoutV3, Percent, Token, TokenAmount } from '@raydium-io/raydium-sdk';
+import { ApiPoolInfoV4, Liquidity, LIQUIDITY_STATE_LAYOUT_V4, LiquidityPoolKeysV4, LiquidityStateV4, Market, MARKET_STATE_LAYOUT_V3, MarketStateLayoutV3, Percent, SPL_MINT_LAYOUT, Token, TokenAmount } from '@raydium-io/raydium-sdk';
 import { MarketCache, PoolCache } from './cache'; 
 import { TransactionExecutor } from './transactions';
 import { createPoolKeys, logger, MinimalMarketLayoutV3, NETWORK, sleep } from './helpers';
@@ -59,11 +59,13 @@ export class Bot {
   
   } 
 
-  public async sell(accountId: PublicKey, mint: string, amount: any, state: any, market: any) {
+  public async sell(accountId: PublicKey, mint: string, state: LiquidityStateV4, market: MinimalMarketLayoutV3) {
     const mintP = new PublicKey(mint);
     try {
       logger.trace({ mint: mintP }, `Processing new token...`);
-
+      const tokenAta = await getAssociatedTokenAddress(new PublicKey(mint), this.config.wallet.publicKey)
+      const tokenBalInfo = await this.connection.getTokenAccountBalance(tokenAta)
+      const tokenBalance = tokenBalInfo.value.amount
       const poolData = state;
 
       if (!poolData) {
@@ -72,7 +74,7 @@ export class Bot {
       }
 
       const tokenIn = new Token(TOKEN_PROGRAM_ID, poolData.baseMint, poolData.baseDecimal.toNumber());
-      const tokenAmountIn = new TokenAmount(tokenIn, BigInt(amount), true);
+      const tokenAmountIn = new TokenAmount(tokenIn, tokenBalance, true);
 
       if (tokenAmountIn.isZero()) {
         logger.warn({ mint: mintP.toString() }, `Empty balance, can't sell`);
@@ -209,5 +211,50 @@ export class Bot {
     transaction.sign([wallet, ...innerTransaction.signers]);
 
     return this.txExecutor.executeAndConfirm(transaction, wallet, latestBlockhash);
-  } 
+  }
+  
+  private async formatAmmKeysById(connection: Connection, id: string): Promise<ApiPoolInfoV4> {
+    const account = await connection.getAccountInfo(new PublicKey(id))
+    if (account === null) throw Error(' get id info error ')
+    const info = LIQUIDITY_STATE_LAYOUT_V4.decode(account.data)
+  
+    const marketId = info.marketId
+    const marketAccount = await connection.getAccountInfo(marketId)
+    if (marketAccount === null) throw Error(' get market info error')
+    const marketInfo = MARKET_STATE_LAYOUT_V3.decode(marketAccount.data)
+  
+    const lpMint = info.lpMint
+    const lpMintAccount = await connection.getAccountInfo(lpMint)
+    if (lpMintAccount === null) throw Error(' get lp mint info error')
+    const lpMintInfo = SPL_MINT_LAYOUT.decode(lpMintAccount.data)
+  
+    return {
+      id,
+      baseMint: info.baseMint.toString(),
+      quoteMint: info.quoteMint.toString(),
+      lpMint: info.lpMint.toString(),
+      baseDecimals: info.baseDecimal.toNumber(),
+      quoteDecimals: info.quoteDecimal.toNumber(),
+      lpDecimals: lpMintInfo.decimals,
+      version: 4,
+      programId: account.owner.toString(),
+      authority: Liquidity.getAssociatedAuthority({ programId: account.owner }).publicKey.toString(),
+      openOrders: info.openOrders.toString(),
+      targetOrders: info.targetOrders.toString(),
+      baseVault: info.baseVault.toString(),
+      quoteVault: info.quoteVault.toString(),
+      withdrawQueue: info.withdrawQueue.toString(),
+      lpVault: info.lpVault.toString(),
+      marketVersion: 3,
+      marketProgramId: info.marketProgramId.toString(),
+      marketId: info.marketId.toString(),
+      marketAuthority: Market.getAssociatedAuthority({ programId: info.marketProgramId, marketId: info.marketId }).publicKey.toString(),
+      marketBaseVault: marketInfo.baseVault.toString(),
+      marketQuoteVault: marketInfo.quoteVault.toString(),
+      marketBids: marketInfo.bids.toString(),
+      marketAsks: marketInfo.asks.toString(),
+      marketEventQueue: marketInfo.eventQueue.toString(),
+      lookupTableAccount: PublicKey.default.toString()
+    }
+  }
 }
