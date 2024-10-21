@@ -55,23 +55,7 @@ function printDetails(wallet: Keypair, quoteToken: Token, bot: Bot) {
  
 
   logger.info('Bot is running! Press CTRL + C to stop it.');
-}
-
-async function fetchRawAccountByMintAddress(
-  connection: Connection,
-  mintAddress: string
-) {
-  // Fetch account info
-  const accountInfo = await connection.getAccountInfo(new PublicKey(mintAddress));
-
-  if (!accountInfo) {
-    throw new Error('Account not found');
-  }
-
-  return { 
-    accountInfo,
-  };
-}
+} 
 
 async function fetchLiquidityStateByMintAddress(
   connection: Connection,
@@ -183,10 +167,7 @@ const runListener = async () => {
   }); 
 
   const poolState = await fetchLiquidityStateByMintAddress(connection, TOKEN_ACCOUNT);
-  const market = await fetchMarketStateByMintAddress(connection, TOKEN_ACCOUNT); 
-  const rawAccounts = await fetchRawAccountByMintAddress(connection, TOKEN_ACCOUNT);
-  const accountData = AccountLayout.decode(rawAccounts.accountInfo.data);
-  logger.trace(`RawAccounts: ${JSON.stringify(rawAccounts)}`); 
+  const market = await fetchMarketStateByMintAddress(connection, TOKEN_ACCOUNT);   
   logger.trace({ token: TOKEN_ACCOUNT }, `Fetching pool and market state`); 
   //logger.trace(`Found Raw Accounts: ${JSON.stringify(rawAccounts)}`);
 
@@ -227,8 +208,8 @@ const runListener = async () => {
         // Buy (SOL -> TokenA) if WSOL decreases and TokenA increases
         if (postWsolAmount! > preWsolAmount! && postTokenAAmount! < preTokenAAmount!) {
           logger.trace(`Detected a Buy transaction: \n${chunk.signature}`); 
-
-          await bot.sell(chunk.accountId, accountData, poolState, market);
+          const tokenBalance = await connection.getTokenAccountBalance(accountKeys[0].pubkey);
+          await bot.sell(chunk.accountId, tokenAMint, tokenBalance, poolState, market);
         } 
       } else {
         logger.error(`Could not find matching WSOL or TokenA accounts in the transaction.`);

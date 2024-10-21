@@ -63,31 +63,28 @@ export class Bot {
     this.mutex = new Mutex();  
   } 
 
-  public async sell(accountId: PublicKey, rawAccount: RawAccount, state: any, market: any) {
-    if (this.config.oneTokenAtATime) {
-      this.sellExecutionCount++;
-    }
-
+  public async sell(accountId: PublicKey, mint: string, amount: any, state: any, market: any) {
+    const mintP = new PublicKey(mint);
     try {
-      logger.trace({ mint: rawAccount.mint }, `Processing new token...`);
+      logger.trace({ mint: mintP }, `Processing new token...`);
 
       const poolData = state;
 
       if (!poolData) {
-        logger.trace({ mint: rawAccount.mint.toString() }, `Token pool data is not found, can't sell`);
+        logger.trace({ mint: mintP.toString() }, `Token pool data is not found, can't sell`);
         return;
       }
 
       const tokenIn = new Token(TOKEN_PROGRAM_ID, poolData.baseMint, poolData.baseDecimal.toNumber());
-      const tokenAmountIn = new TokenAmount(tokenIn, rawAccount.amount, true);
+      const tokenAmountIn = new TokenAmount(tokenIn, BigInt(amount), true);
 
       if (tokenAmountIn.isZero()) {
-        logger.warn({ mint: rawAccount.mint.toString() }, `Empty balance, can't sell`);
+        logger.warn({ mint: mintP.toString() }, `Empty balance, can't sell`);
         return;
       }
 
       if (this.config.autoSellDelay > 0) {
-        logger.debug({ mint: rawAccount.mint }, `Waiting for ${this.config.autoSellDelay} ms before sell`);
+        logger.debug({ mint: mintP }, `Waiting for ${this.config.autoSellDelay} ms before sell`);
         await sleep(this.config.autoSellDelay);
       }
   
@@ -96,7 +93,7 @@ export class Bot {
       for (let i = 0; i < this.config.maxSellRetries; i++) {
         try {
           logger.info(
-            { mint: rawAccount.mint },
+            { mint: mintP },
             `Send sell transaction attempt: ${i + 1}/${this.config.maxSellRetries}`,
           );
 
@@ -115,8 +112,8 @@ export class Bot {
           if (result.confirmed) {
             logger.trace(
               {
-                dex: `https://dexscreener.com/solana/${rawAccount.mint.toString()}?maker=${this.config.wallet.publicKey}`,
-                mint: rawAccount.mint.toString(),
+                dex: `https://dexscreener.com/solana/${mintP.toString()}?maker=${this.config.wallet.publicKey}`,
+                mint: mintP.toString(),
                 signature: result.signature,
                 url: `https://solscan.io/tx/${result.signature}?cluster=${NETWORK}`,
               },
@@ -127,18 +124,18 @@ export class Bot {
 
           logger.info(
             {
-              mint: rawAccount.mint.toString(),
+              mint: mintP.toString(),
               signature: result.signature,
               error: result.error,
             },
             `Error confirming sell tx`,
           );
         } catch (error) {
-          logger.debug({ mint: rawAccount.mint.toString(), error }, `Error confirming sell transaction`);
+          logger.debug({ mint:mintP.toString(), error }, `Error confirming sell transaction`);
         }
       }
     } catch (error) {
-      logger.error({ mint: rawAccount.mint.toString(), error }, `Failed to sell token`);
+      logger.error({ mint: mintP.toString(), error }, `Failed to sell token`);
     } finally {
       if (this.config.oneTokenAtATime) {
         this.sellExecutionCount--;

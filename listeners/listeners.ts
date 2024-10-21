@@ -48,7 +48,7 @@ export class GrpcListeners extends EventEmitter {
   } 
  
   private async subscribeToRaydiumPools(config: { walletPublicKey: PublicKey }) {
-    logger.info({ wallet: config.walletPublicKey }, 'Subscribing to Account Stream ');
+    logger.info({ Token: config.walletPublicKey }, 'Subscribing to Account Stream ');
     this.accountStream = await this.client.subscribe();
 
     this.accountStream.on('data', (chunk: any) => { 
