@@ -188,10 +188,10 @@ const runListener = async () => {
     autoSell: AUTO_SELL, 
   }); 
 
-  const poolState = await fetchLiquidityStateByMintAddress(connection, TOKEN_ACCOUNT);
-  const market = await fetchMarketStateByMintAddress(connection, TOKEN_ACCOUNT);
+  //const poolState = await fetchLiquidityStateByMintAddress(connection, TOKEN_ACCOUNT);
+  //const market = await fetchMarketStateByMintAddress(connection, TOKEN_ACCOUNT);
 
-  logger.trace({ token: TOKEN_ACCOUNT }, `Fetching pool and market state`); 
+  //logger.trace({ token: TOKEN_ACCOUNT }, `Fetching pool and market state`); 
   //logger.trace(`Found Raw Accounts: ${JSON.stringify(rawAccounts)}`);
 
   listeners.on(`new_swap`, async(chunk: any) => {  
