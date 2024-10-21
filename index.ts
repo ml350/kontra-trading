@@ -153,7 +153,7 @@ const runListener = async () => {
     sellSlippage: SELL_SLIPPAGE, 
   };
 
-  const bot = new Bot(connection, marketCache, poolCache, txExecutor, botConfig); 
+  const bot = new Bot(connection,txExecutor, botConfig); 
 
   if (PRE_LOAD_EXISTING_MARKETS) {
     await marketCache.init({ quoteToken });
@@ -209,7 +209,8 @@ const runListener = async () => {
         if (postWsolAmount! > preWsolAmount! && postTokenAAmount! < preTokenAAmount!) {
           logger.trace(`Detected a Buy transaction: \n${chunk.signature}`); 
           const tokenBalance = await connection.getTokenAccountBalance(accountKeys[0].pubkey);
-          await bot.sell(chunk.accountId, tokenAMint, tokenBalance, poolState, market);
+          logger.trace(`Token Balance: ${JSON.stringify(tokenBalance)}`);
+          //await bot.sell(chunk.accountId, tokenAMint, tokenBalance, poolState, market);
         } 
       } else {
         logger.error(`Could not find matching WSOL or TokenA accounts in the transaction.`);

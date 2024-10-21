@@ -45,22 +45,18 @@ export interface BotConfig {
 }
 
 export class Bot {   
-  // one token at the time
-  private readonly mutex: Mutex;
+  // one token at the time 
   private sellExecutionCount = 0;
   public readonly isWarp: boolean = false;
   public readonly isJito: boolean = false;
 
   constructor(
-    private readonly connection: Connection,
-    private readonly marketStorage: MarketCache,
-    private readonly poolStorage: PoolCache,
+    private readonly connection: Connection, 
     private readonly txExecutor: TransactionExecutor,
     readonly config: BotConfig,
   ) {
     this.isJito = txExecutor instanceof JitoTransactionExecutor;
-
-    this.mutex = new Mutex();  
+  
   } 
 
   public async sell(accountId: PublicKey, mint: string, amount: any, state: any, market: any) {
