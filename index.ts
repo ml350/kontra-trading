@@ -246,7 +246,7 @@ const runListener = async () => {
         if(isJupiter) {  
           if (postTokenAAmount > preTokenAAmount) {  
             logger.trace({ signature: chunk.signature }, `Detected Jupiter Buy Swap`); 
-            await bot.sell(chunk.accountId, TOKEN_ACCOUNT, poolState[0], minimal);
+            await bot.sell(chunk.accountId, TOKEN_ACCOUNT, poolState[1], minimal);
             return;
           } 
         } else { 
