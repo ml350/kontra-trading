@@ -55,8 +55,7 @@ export class Bot {
     private readonly txExecutor: TransactionExecutor,
     readonly config: BotConfig,
   ) {
-    this.isJito = txExecutor instanceof JitoTransactionExecutor;
-  
+    this.isJito = txExecutor instanceof JitoTransactionExecutor; 
   } 
 
   public async sell(accountId: PublicKey, mint: string, state: LiquidityStateV4, market: MinimalMarketLayoutV3) {
@@ -75,7 +74,6 @@ export class Bot {
 
       const tokenIn = new Token(TOKEN_PROGRAM_ID, poolData.baseMint, poolData.baseDecimal.toNumber());
       const tokenAmountIn = new TokenAmount(tokenIn, tokenBalance, true);
-      logger.trace({ mint: mintP.toString(), balance: tokenAmountIn.toString() }, `Token balance`);
       if (tokenAmountIn.isZero()) {
         logger.warn({ mint: mintP.toString() }, `Empty balance, can't sell`);
         return;
@@ -86,8 +84,8 @@ export class Bot {
         await sleep(this.config.autoSellDelay);
       }
   
-      const poolKeys: LiquidityPoolKeysV4 = createPoolKeys(new PublicKey(poolData.marketId), poolData, market); 
-      logger.trace({ mint: mintP.toString(), poolKeys }, `Pool keys`);
+      const poolKeys: LiquidityPoolKeysV4 = createPoolKeys(new PublicKey(poolData.marketId), poolData, market);   
+      logger.trace({ mint: mintP.toString(), balance: tokenAmountIn.toFixed(), poolKeys: poolKeys }, `Token Info`);
       for (let i = 0; i < this.config.maxSellRetries; i++) {
         try {
           logger.info(

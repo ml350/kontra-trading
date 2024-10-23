@@ -243,19 +243,18 @@ const runListener = async () => {
         const postTokenAAmount = tokenAPostBalance.uiTokenAmount.uiAmount || 0;
         
 
-        if(isJupiter) { 
-          
-          logger.trace(`Detected a transaction: \n${preWsolAmount} \n${postWsolAmount} \n${preTokenAAmount} \n${postTokenAAmount}`); 
-          // **Buy (WSOL -> TokenA) if WSOL decreases and TokenA increases**
+        if(isJupiter) {  
           if (postTokenAAmount > preTokenAAmount) {  
+            logger.trace({ signature: chunk.signature }, `Detected Jupiter Buy Swap`); 
             await bot.sell(chunk.accountId, TOKEN_ACCOUNT, poolState[0], minimal);
             return;
           } 
+        } else { 
+          if (postWsolAmount > preWsolAmount && postTokenAAmount < preTokenAAmount) { 
+            logger.trace({ signature: chunk.signature }, `Detected Buy Swap`); 
+            await bot.sell(chunk.accountId, TOKEN_ACCOUNT, poolState[0], minimal);
+          } 
         }
-        // Buy (SOL -> TokenA) if WSOL decreases and TokenA increases
-        if (postWsolAmount! > preWsolAmount! && postTokenAAmount! < preTokenAAmount!) { 
-          await bot.sell(chunk.accountId, TOKEN_ACCOUNT, poolState[0], minimal);
-        } 
       } else {
         logger.error(`Could not find matching WSOL or TokenA accounts in the transaction.`);
       }
