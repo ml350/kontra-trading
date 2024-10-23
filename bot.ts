@@ -96,6 +96,9 @@ export class Bot {
             `Send sell transaction attempt: ${i + 1}/${this.config.maxSellRetries}`,
           );
 
+          
+          console.log('works');
+
           const result = await this.swap(
             poolKeys,
             accountId,
@@ -108,7 +111,6 @@ export class Bot {
             'sell',
           );
 
-          console.log(result);
 
           if (result.confirmed) {
             logger.trace(
@@ -161,8 +163,9 @@ export class Bot {
       connection: this.connection,
       poolKeys,
     });
-
-    logger.trace(`Pool Info`, JSON.stringify(poolInfo));
+    
+    
+    console.log('works2');
 
     const computedAmountOut = Liquidity.computeAmountOut({
       poolKeys,
@@ -171,8 +174,9 @@ export class Bot {
       currencyOut: tokenOut,
       slippage: slippagePercent,
     });
-
-    logger.trace(`computedAmountOut`, JSON.stringify(computedAmountOut));
+    
+    console.log('works3');
+ 
 
     const latestBlockhash = await this.connection.getLatestBlockhash();
     const { innerTransaction } = Liquidity.makeSwapFixedInInstruction(

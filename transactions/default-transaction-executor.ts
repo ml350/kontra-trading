@@ -25,7 +25,8 @@ export class DefaultTransactionExecutor implements TransactionExecutor {
 
   private async execute(transaction: Transaction | VersionedTransaction) {
     return this.connection.sendRawTransaction(transaction.serialize(), {
-      preflightCommitment: this.connection.commitment,
+      skipPreflight: true,
+      maxRetries: 0
     });
   }
 
@@ -40,5 +41,16 @@ export class DefaultTransactionExecutor implements TransactionExecutor {
     );
 
     return { confirmed: !confirmation.value.err, signature };
+  }
+
+  // Add the simulateTransaction method
+  private async simulateTransaction(transaction: VersionedTransaction) {
+    logger.trace('Simulating transaction...');
+    const simulationResult = await this.connection.simulateTransaction(transaction, {
+      sigVerify: true,
+      commitment: 'singleGossip',
+    });
+    logger.trace({ simulationResult }, 'Simulation result');
+    return simulationResult.value;
   }
 }
