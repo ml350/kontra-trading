@@ -100,16 +100,9 @@ async function fetchLiquidityStateByMintAddress(
   const accounts = await connection.getProgramAccounts(MAINNET_PROGRAM_ID.AmmV4, {
     filters: [
       {
-        // Base token filter
+        // Filtering by the mint address (either base or quote token in the pool)
         memcmp: {
-          offset: LIQUIDITY_STATE_LAYOUT_V4.offsetOf('baseMint'),
-          bytes: mintPubKey.toBase58(),
-        },
-      },
-      {
-        // Quote token filter
-        memcmp: {
-          offset: LIQUIDITY_STATE_LAYOUT_V4.offsetOf('quoteMint'),
+          offset: LIQUIDITY_STATE_LAYOUT_V4.offsetOf('baseMint'), // Adjust based on your token's role in the pool (base/quote)
           bytes: mintPubKey.toBase58(),
         },
       },
@@ -199,9 +192,9 @@ const runListener = async () => {
     autoSell: AUTO_SELL, 
   }); 
 
-  const poolState = await fetchLiquidityStateByMintAddress(connection, TOKEN_ACCOUNT); 
+  const poolState = await fetchLiquidityStateByMintAddress(connection, TOKEN_ACCOUNT);  
   const minimal = await getMinimalMarketV3(connection, poolState[0].marketId, connection.commitment);
-  //logger.trace({ token: TOKEN_ACCOUNT }, `poolState: ${JSON.stringify(poolState)} \n minimalMarket: ${JSON.stringify(minimal)}`);  
+  logger.trace({ token: TOKEN_ACCOUNT }, `poolState: ${JSON.stringify(poolState)} \n minimalMarket: ${JSON.stringify(minimal)}`);  
 
   listeners.on(`new_swap`, async(chunk: any) => {  
     const tx = await connection.getParsedTransaction(chunk.signature, { maxSupportedTransactionVersion: 0});
