@@ -84,8 +84,11 @@ export class Bot {
         await sleep(this.config.autoSellDelay);
       }
   
-      const poolKeys: LiquidityPoolKeysV4 = createPoolKeys(new PublicKey(poolData.marketId), poolData, market);   
-      logger.trace({ mint: mintP.toString(), balance: tokenAmountIn.toFixed(), poolKeys: JSON.stringify(poolKeys) }, `Token Info`);
+      const poolKeys: LiquidityPoolKeysV4 = createPoolKeys(new PublicKey(poolData.marketId), poolData, market); 
+        
+      logger.trace({ mint: mintP.toString(), balance: tokenAmountIn.toFixed() }, `Token Info`);
+      logger.trace({ mint: mintP.toString() }, `Pool Keys`);
+
       for (let i = 0; i < this.config.maxSellRetries; i++) {
         try {
           logger.info(
