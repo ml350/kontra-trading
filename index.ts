@@ -236,11 +236,11 @@ const runListener = async () => {
       const tokenAPostBalance = postBalances.find(balance => balance.mint === tokenAMint);
 
       if (wsolPreBalance && tokenAPreBalance && wsolPostBalance && tokenAPostBalance) {
-        const preWsolAmount = wsolPreBalance.uiTokenAmount.uiAmount;
-        const postWsolAmount = wsolPostBalance.uiTokenAmount.uiAmount;
+        const preWsolAmount = wsolPreBalance.uiTokenAmount.uiAmount || 0;
+        const postWsolAmount = wsolPostBalance.uiTokenAmount.uiAmount || 0;
 
-        let preTokenAAmount = tokenAPreBalance.uiTokenAmount.uiAmount;
-        const postTokenAAmount = tokenAPostBalance.uiTokenAmount.uiAmount;
+        let preTokenAAmount = tokenAPreBalance?.uiTokenAmount.uiAmount || 0;
+        const postTokenAAmount = tokenAPostBalance.uiTokenAmount.uiAmount || 0;
         
         logger.trace(`Detected a transaction: \n${preWsolAmount} \n${postWsolAmount} \n${preTokenAAmount} \n${postTokenAAmount}`); 
 
@@ -256,8 +256,7 @@ const runListener = async () => {
           } 
         }
         // Buy (SOL -> TokenA) if WSOL decreases and TokenA increases
-        if (postWsolAmount! > preWsolAmount! && postTokenAAmount! < preTokenAAmount!) {
-
+        if (postWsolAmount! > preWsolAmount! && postTokenAAmount! < preTokenAAmount!) { 
           await bot.sell(chunk.accountId, TOKEN_ACCOUNT, poolState[0], minimal);
         } 
       } else {
