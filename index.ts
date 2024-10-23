@@ -242,15 +242,11 @@ const runListener = async () => {
         let preTokenAAmount = tokenAPreBalance?.uiTokenAmount.uiAmount || 0;
         const postTokenAAmount = tokenAPostBalance.uiTokenAmount.uiAmount || 0;
         
-        logger.trace(`Detected a transaction: \n${preWsolAmount} \n${postWsolAmount} \n${preTokenAAmount} \n${postTokenAAmount}`); 
 
-        if(isJupiter) {
-          if (preTokenAAmount === null){
-            preTokenAAmount = 0;
-          }
-
+        if(isJupiter) { 
           // **Buy (WSOL -> TokenA) if WSOL decreases and TokenA increases**
-          if (postWsolAmount! < preWsolAmount! && postTokenAAmount! > preTokenAAmount!) {  
+          if (postWsolAmount < preWsolAmount && postTokenAAmount > preTokenAAmount) {  
+            logger.trace(`Detected a transaction: \n${preWsolAmount} \n${postWsolAmount} \n${preTokenAAmount} \n${postTokenAAmount}`); 
             await bot.sell(chunk.accountId, TOKEN_ACCOUNT, poolState[0], minimal);
             return;
           } 
