@@ -34,6 +34,7 @@ import {
 } from './helpers';  
 import { JitoTransactionExecutor } from './transactions/jito-rpc-transaction-executor';
 import Client from "@triton-one/yellowstone-grpc"; 
+import bs58 from 'bs58';
 
 const client = new Client(GRPC_ENDPOINT, GRPC_TOKEN,
   {
@@ -99,11 +100,24 @@ async function fetchLiquidityStateByMintAddress(
   // Fetching all program accounts for Raydium's liquidity program
   const accounts = await connection.getProgramAccounts(MAINNET_PROGRAM_ID.AmmV4, {
     filters: [
+      { dataSize: LIQUIDITY_STATE_LAYOUT_V4.span },
       {
         // Filtering by the mint address (either base or quote token in the pool)
         memcmp: {
           offset: LIQUIDITY_STATE_LAYOUT_V4.offsetOf('baseMint'), // Adjust based on your token's role in the pool (base/quote)
           bytes: mintPubKey.toBase58(),
+        },
+      },
+      {
+        memcmp: {
+          offset: LIQUIDITY_STATE_LAYOUT_V4.offsetOf('marketProgramId'),
+          bytes: MAINNET_PROGRAM_ID.OPENBOOK_MARKET.toBase58(),
+        },
+      },
+      {
+        memcmp: {
+          offset: LIQUIDITY_STATE_LAYOUT_V4.offsetOf('status'),
+          bytes: bs58.encode([6, 0, 0, 0, 0, 0, 0, 0]),
         },
       },
     ],
