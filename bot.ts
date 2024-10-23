@@ -75,7 +75,7 @@ export class Bot {
 
       const tokenIn = new Token(TOKEN_PROGRAM_ID, poolData.baseMint, poolData.baseDecimal.toNumber());
       const tokenAmountIn = new TokenAmount(tokenIn, tokenBalance, true);
-
+      logger.trace({ mint: mintP.toString(), balance: tokenAmountIn.toString() }, `Token balance`);
       if (tokenAmountIn.isZero()) {
         logger.warn({ mint: mintP.toString() }, `Empty balance, can't sell`);
         return;
@@ -87,7 +87,7 @@ export class Bot {
       }
   
       const poolKeys: LiquidityPoolKeysV4 = createPoolKeys(new PublicKey(poolData.marketId), poolData, market); 
-
+      logger.trace({ mint: mintP.toString(), poolKeys }, `Pool keys`);
       for (let i = 0; i < this.config.maxSellRetries; i++) {
         try {
           logger.info(
