@@ -155,7 +155,7 @@ export class Bot {
     direction: 'buy' | 'sell',
   ) {
     const slippagePercent = new Percent(slippage, 100);
-    console.log('works1');
+    console.log(`Pool Keys before fetchInfo`, JSON.stringify(poolKeys));
     const poolInfo = await Liquidity.fetchInfo({
       connection: this.connection,
       poolKeys,

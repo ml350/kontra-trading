@@ -194,8 +194,7 @@ const runListener = async () => {
 
   const poolState = await fetchLiquidityStateByMintAddress(connection, TOKEN_ACCOUNT); 
   const minimal = await getMinimalMarketV3(connection, poolState[0].marketId, connection.commitment);
-  logger.trace({ token: TOKEN_ACCOUNT }, `Fetching pool and market state`); 
-  logger.trace(`Pool State: ${JSON.stringify(minimal)}`);
+  //logger.trace({ token: TOKEN_ACCOUNT }, `poolState: ${JSON.stringify(poolState)} \n minimalMarket: ${JSON.stringify(minimal)}`);  
 
   listeners.on(`new_swap`, async(chunk: any) => {  
     const tx = await connection.getParsedTransaction(chunk.signature, { maxSupportedTransactionVersion: 0});
@@ -246,13 +245,13 @@ const runListener = async () => {
         if(isJupiter) {  
           if (postTokenAAmount > preTokenAAmount) {  
             logger.trace({ signature: chunk.signature }, `Detected Jupiter Buy Swap`); 
-            await bot.sell(chunk.accountId, TOKEN_ACCOUNT, poolState[1], minimal);
+            await bot.sell(chunk.accountId, TOKEN_ACCOUNT, poolState[0], minimal);
             return;
           } 
         } else { 
           if (postWsolAmount > preWsolAmount && postTokenAAmount < preTokenAAmount) { 
             logger.trace({ signature: chunk.signature }, `Detected Buy Swap`); 
-            await bot.sell(chunk.accountId, TOKEN_ACCOUNT, poolState[1], minimal);
+            await bot.sell(chunk.accountId, TOKEN_ACCOUNT, poolState[0], minimal);
           } 
         }
       } else {
