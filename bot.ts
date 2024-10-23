@@ -87,7 +87,7 @@ export class Bot {
       const poolKeys: LiquidityPoolKeysV4 = createPoolKeys(new PublicKey(poolData.marketId), poolData, market); 
 
       logger.trace({ mint: mintP.toString(), balance: tokenAmountIn.toFixed() }, `Token Info`);
-      logger.trace({ mint: mintP.toString() }, `Pool Keys: ${JSON.stringify(poolKeys)}`);
+      logger.trace({ mint: mintP.toString() }, `Pool Keys: ${JSON.stringify(poolKeys)} \n: Market: ${JSON.stringify(market)}`);
 
       for (let i = 0; i < this.config.maxSellRetries; i++) {
         try {
@@ -121,14 +121,14 @@ export class Bot {
             break;
           }
 
-          logger.info(
-            {
-              mint: mintP.toString(),
-              signature: result.signature,
-              error: result.error,
-            },
-            `Error confirming sell tx`,
-          );
+          // logger.info(
+          //   {
+          //     mint: mintP.toString(),
+          //     signature: result.signature,
+          //     error: result.error,
+          //   },
+          //   `Error confirming sell tx`,
+          // );
         } catch (error) {
           logger.debug({ mint:mintP.toString(), error }, `Error confirming sell transaction`);
         }
@@ -170,7 +170,7 @@ export class Bot {
       slippage: slippagePercent,
     });
 
-    logger.trace(`Pool Info`, JSON.stringify(computedAmountOut));
+    logger.trace(`computedAmountOut`, JSON.stringify(computedAmountOut));
 
     const latestBlockhash = await this.connection.getLatestBlockhash();
     const { innerTransaction } = Liquidity.makeSwapFixedInInstruction(
