@@ -160,6 +160,8 @@ export class Bot {
       poolKeys,
     });
 
+    logger.trace(`Pool Info`, JSON.stringify(poolInfo));
+
     const computedAmountOut = Liquidity.computeAmountOut({
       poolKeys,
       poolInfo,
@@ -167,6 +169,8 @@ export class Bot {
       currencyOut: tokenOut,
       slippage: slippagePercent,
     });
+
+    logger.trace(`Pool Info`, JSON.stringify(computedAmountOut));
 
     const latestBlockhash = await this.connection.getLatestBlockhash();
     const { innerTransaction } = Liquidity.makeSwapFixedInInstruction(

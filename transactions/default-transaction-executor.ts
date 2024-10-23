@@ -16,10 +16,10 @@ export class DefaultTransactionExecutor implements TransactionExecutor {
     payer: Keypair,
     latestBlockhash: BlockhashWithExpiryBlockHeight,
   ): Promise<{ confirmed: boolean; signature?: string, error?: string }> {
-    logger.debug('Executing transaction...');
+    logger.trace('Executing transaction...');
     const signature = await this.execute(transaction);
 
-    logger.debug({ signature }, 'Confirming transaction...');
+    logger.trace({ signature }, 'Confirming transaction...');
     return this.confirm(signature, latestBlockhash);
   }
 
