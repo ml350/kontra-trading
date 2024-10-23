@@ -108,6 +108,8 @@ export class Bot {
             'sell',
           );
 
+          console.log(result);
+
           if (result.confirmed) {
             logger.trace(
               {
