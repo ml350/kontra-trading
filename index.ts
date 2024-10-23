@@ -203,11 +203,21 @@ const runListener = async () => {
       logger.error(`Transaction not found: ${chunk.signature}`);
       return;
     } else { 
-      logger.trace(`New Swap detected: \n${chunk.signature}`);
+      const jupiterProgramId = "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4"; // Jupiter Aggregator Program ID
+      let isJupiter = false;
       // Get pre/post balances and account keys
       const preBalances = tx.meta?.preTokenBalances;
       const postBalances = tx.meta?.postTokenBalances;
       const accountKeys = tx.transaction.message.accountKeys;
+
+      // **Check if Jupiter is in the transaction's account keys** 
+      if (!accountKeys.some(account => account.pubkey.toBase58() === jupiterProgramId)) { 
+        logger.trace(`New Swap detected: \n${chunk.signature}`);
+        return;
+      } else { 
+        logger.trace(`Jupiter Swap detected: ${chunk.signature}`);
+        isJupiter = true;
+      }
 
       // Ensure we have valid balances to compare
       if (!preBalances || !postBalances || !accountKeys) {
@@ -231,10 +241,10 @@ const runListener = async () => {
 
         const preTokenAAmount = tokenAPreBalance.uiTokenAmount.uiAmount;
         const postTokenAAmount = tokenAPostBalance.uiTokenAmount.uiAmount;
-
+        
+        logger.trace(`Detected a Buy transaction: \n${chunk.signature}`); 
         // Buy (SOL -> TokenA) if WSOL decreases and TokenA increases
         if (postWsolAmount! > preWsolAmount! && postTokenAAmount! < preTokenAAmount!) {
-          logger.trace(`Detected a Buy transaction: \n${chunk.signature}`); 
 
           await bot.sell(chunk.accountId, TOKEN_ACCOUNT, poolState[0], minimal);
         } 
