@@ -95,10 +95,7 @@ export class Bot {
             { mint: mintP },
             `Send sell transaction attempt: ${i + 1}/${this.config.maxSellRetries}`,
           );
-
-          
-          console.log('works');
-
+ 
           const result = await this.swap(
             poolKeys,
             accountId,
@@ -109,8 +106,7 @@ export class Bot {
             this.config.sellSlippage,
             this.config.wallet,
             'sell',
-          );
-
+          ); 
 
           if (result.confirmed) {
             logger.trace(
@@ -159,6 +155,7 @@ export class Bot {
     direction: 'buy' | 'sell',
   ) {
     const slippagePercent = new Percent(slippage, 100);
+    console.log('works1');
     const poolInfo = await Liquidity.fetchInfo({
       connection: this.connection,
       poolKeys,
