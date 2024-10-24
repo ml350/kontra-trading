@@ -14,12 +14,12 @@ import {
   RawAccount,
   TOKEN_PROGRAM_ID,
 } from '@solana/spl-token';
-import { ApiPoolInfoV4, Liquidity, LIQUIDITY_STATE_LAYOUT_V4, LiquidityPoolKeysV4, LiquidityStateV4, Market, MARKET_STATE_LAYOUT_V3, MarketStateLayoutV3, Percent, SPL_MINT_LAYOUT, Token, TokenAmount } from '@raydium-io/raydium-sdk';
-import { MarketCache, PoolCache } from './cache'; 
+import { ApiPoolInfoV4, jsonInfo2PoolKeys, Liquidity, LIQUIDITY_STATE_LAYOUT_V4, LiquidityPoolKeys, LiquidityPoolKeysV4, LiquidityStateV4, Market, MARKET_STATE_LAYOUT_V3, MarketStateLayoutV3, Percent, SPL_MINT_LAYOUT, Token, TokenAmount } from '@raydium-io/raydium-sdk';
+import { PoolKeys } from './utils/getPoolKeys';
 import { TransactionExecutor } from './transactions';
-import { createPoolKeys, logger, MinimalMarketLayoutV3, NETWORK, sleep } from './helpers';
-import { Mutex } from 'async-mutex';
+import { AVG_SELL_AMOUNT, createPoolKeys, HIGH_SELL_AMOUNT, logger, LOW_SELL_AMOUNT, MinimalMarketLayoutV3, NETWORK, sleep,  } from './helpers'; 
 import { JitoTransactionExecutor } from './transactions/jito-rpc-transaction-executor';
+import BN from 'bn.js';
 
 export interface BotConfig {
   wallet: Keypair;
@@ -58,36 +58,34 @@ export class Bot {
     this.isJito = txExecutor instanceof JitoTransactionExecutor; 
   } 
 
-  public async sell(accountId: PublicKey, mint: string, state: LiquidityStateV4, market: MinimalMarketLayoutV3) {
+  public async sell(accountId: PublicKey, mint: string, poolState: LiquidityPoolKeysV4) {
     const mintP = new PublicKey(mint);
-    try {
+    try { 
       logger.trace({ mint: mintP }, `Processing new token...`);
-      const tokenAta = await getAssociatedTokenAddress(new PublicKey(mint), this.config.wallet.publicKey)
-      const tokenBalInfo = await this.connection.getTokenAccountBalance(tokenAta)
-      const tokenBalance = tokenBalInfo.value.amount
-      const poolData = state;
+      const tokenAta = await getAssociatedTokenAddress(mintP, this.config.wallet.publicKey)
+      const tokenBal = await this.connection.getTokenAccountBalance(tokenAta)
 
+      if (!tokenBal || tokenBal.value.uiAmount == 0)
+        return null
+
+      const balance = tokenBal.value.amount
+      tokenBal.value.decimals
+      const baseToken = new Token(TOKEN_PROGRAM_ID, mintP, tokenBal.value.decimals) 
+      const baseTokenAmount = new TokenAmount(baseToken, BigInt(balance), true)
+      const sellPercentages = [AVG_SELL_AMOUNT, HIGH_SELL_AMOUNT, LOW_SELL_AMOUNT];
+      // let chunkPercentage = new BN(this.config.chunkPrecentage);
+      // let chunkAmount = baseTokenAmount.raw.mul(chunkPercentage).div(new BN(100)); 
+      // let chunkAmountIn = new TokenAmount(baseToken, chunkAmount, true);  
+      const poolData = poolState;
+    
       if (!poolData) {
         logger.trace({ mint: mintP.toString() }, `Token pool data is not found, can't sell`);
         return;
-      }
-
-      const tokenIn = new Token(TOKEN_PROGRAM_ID, poolData.baseMint, poolData.baseDecimal.toNumber());
-      const tokenAmountIn = new TokenAmount(tokenIn, tokenBalance, true);
-      if (tokenAmountIn.isZero()) {
+      } 
+      if (baseTokenAmount.isZero()) {
         logger.warn({ mint: mintP.toString() }, `Empty balance, can't sell`);
         return;
-      }
-
-      if (this.config.autoSellDelay > 0) {
-        logger.debug({ mint: mintP }, `Waiting for ${this.config.autoSellDelay} ms before sell`);
-        await sleep(this.config.autoSellDelay);
-      }
-  
-      const poolKeys: LiquidityPoolKeysV4 = createPoolKeys(mintP, poolData, market); 
-
-      logger.trace({ mint: mintP.toString(), balance: tokenAmountIn.toFixed() }, `Token Info`);
-      logger.trace({ mint: mintP.toString() }, `Pool Keys: ${JSON.stringify(poolKeys)} \n: Market: ${JSON.stringify(market)}`);
+      }  
 
       for (let i = 0; i < this.config.maxSellRetries; i++) {
         try {
@@ -97,12 +95,12 @@ export class Bot {
           );
  
           const result = await this.swap(
-            poolKeys,
-            accountId,
+            poolState,
+            tokenAta,
             this.config.quoteAta,
-            tokenIn,
+            baseToken,
             this.config.quoteToken,
-            tokenAmountIn,
+            baseTokenAmount,
             this.config.sellSlippage,
             this.config.wallet,
             'sell',
@@ -154,27 +152,20 @@ export class Bot {
     wallet: Keypair,
     direction: 'buy' | 'sell',
   ) {
-    const slippagePercent = new Percent(slippage, 100);
-    console.log(`Pool Keys before fetchInfo`, JSON.stringify(poolKeys));
+    const slippagePercent = new Percent(slippage, 100); 
     const poolInfo = await Liquidity.fetchInfo({
       connection: this.connection,
       poolKeys,
     });
-    
-    
-    console.log('works2');
-
+  
     const computedAmountOut = Liquidity.computeAmountOut({
       poolKeys,
       poolInfo,
       amountIn,
       currencyOut: tokenOut,
       slippage: slippagePercent,
-    });
-    
-    console.log('works3');
+    }); 
  
-
     const latestBlockhash = await this.connection.getLatestBlockhash();
     const { innerTransaction } = Liquidity.makeSwapFixedInInstruction(
       {
@@ -211,7 +202,7 @@ export class Bot {
             ]
           : []),
         ...innerTransaction.instructions,
-        ...(direction === 'sell' ? [createCloseAccountInstruction(ataIn, wallet.publicKey, wallet.publicKey)] : []),
+        ...(direction === 'sell' ? [] : []),
       ],
     }).compileToV0Message();
 

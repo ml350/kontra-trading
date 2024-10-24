@@ -1,7 +1,7 @@
 import { MarketCache, PoolCache } from './cache';
 import { GrpcListeners } from './listeners';
 import { Connection, KeyedAccountInfo, Keypair, PublicKey } from '@solana/web3.js';
-import { LIQUIDITY_STATE_LAYOUT_V4, MAINNET_PROGRAM_ID, Market, MARKET_STATE_LAYOUT_V3, SERUM_PROGRAM_ID_V3, Token, TokenAmount } from '@raydium-io/raydium-sdk';
+import { Liquidity, LIQUIDITY_STATE_LAYOUT_V4, LiquidityPoolKeysV4, MAINNET_PROGRAM_ID, Market, MARKET_STATE_LAYOUT_V3, SERUM_PROGRAM_ID_V3, Token, TokenAmount } from '@raydium-io/raydium-sdk';
 import { AccountLayout, getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { Bot, BotConfig } from './bot';
 import { DefaultTransactionExecutor, TransactionExecutor } from './transactions';
@@ -30,11 +30,13 @@ import {
   GRPC_ENDPOINT,
   GRPC_TOKEN,
   MINIMAL_MARKET_STATE_LAYOUT_V3,
-  getMinimalMarketV3, 
+  getMinimalMarketV3,
+  MINIMUM_BUY_TRIGGER, 
 } from './helpers';  
 import { JitoTransactionExecutor } from './transactions/jito-rpc-transaction-executor';
 import Client from "@triton-one/yellowstone-grpc"; 
 import bs58 from 'bs58';
+import { PoolKeys } from './utils/getPoolKeys';
 
 const client = new Client(GRPC_ENDPOINT, GRPC_TOKEN,
   {
@@ -205,11 +207,8 @@ const runListener = async () => {
     quoteToken,
     autoSell: AUTO_SELL, 
   }); 
-
-  const poolState = await fetchLiquidityStateByMintAddress(connection, TOKEN_ACCOUNT);  
-  const minimal = await getMinimalMarketV3(connection, poolState[0].marketId, connection.commitment);
-  logger.trace({ token: TOKEN_ACCOUNT }, `poolState: ${JSON.stringify(poolState)} \n minimalMarket: ${JSON.stringify(minimal)}`);  
-
+ 
+  const poolState = await PoolKeys.fetchPoolKeyInfo(connection, new PublicKey(TOKEN_ACCOUNT), quoteToken.mint) as LiquidityPoolKeysV4;
   listeners.on(`new_swap`, async(chunk: any) => {  
     const tx = await connection.getParsedTransaction(chunk.signature, { maxSupportedTransactionVersion: 0});
     if (!tx) {
@@ -224,11 +223,9 @@ const runListener = async () => {
       const accountKeys = tx.transaction.message.accountKeys;
 
       // **Check if Jupiter is in the transaction's account keys** 
-      if (!accountKeys.some(account => account.pubkey.toBase58() === jupiterProgramId)) { 
-        logger.trace(`New Swap detected: \n${chunk.signature}`);
-        return;
-      } else { 
-        logger.trace(`Jupiter Swap detected: ${chunk.signature}`);
+      if (!accountKeys.some(account => account.pubkey.toBase58() === jupiterProgramId)) {  
+        isJupiter = false;
+      } else {  
         isJupiter = true;
       }
 
@@ -247,27 +244,44 @@ const runListener = async () => {
 
       const wsolPostBalance = postBalances.find(balance => balance.mint === wsolMint);
       const tokenAPostBalance = postBalances.find(balance => balance.mint === tokenAMint);
-
+ 
+     
       if (wsolPreBalance && tokenAPreBalance && wsolPostBalance && tokenAPostBalance) {
         const preWsolAmount = wsolPreBalance.uiTokenAmount.uiAmount || 0;
         const postWsolAmount = wsolPostBalance.uiTokenAmount.uiAmount || 0;
 
-        let preTokenAAmount = tokenAPreBalance?.uiTokenAmount.uiAmount || 0;
+        const preTokenAAmount = tokenAPreBalance?.uiTokenAmount.uiAmount || 0;
         const postTokenAAmount = tokenAPostBalance.uiTokenAmount.uiAmount || 0;
         
+        const preWsolAmountLamports = parseFloat(wsolPreBalance.uiTokenAmount.amount);
+        const postWsolAmountLamports = parseFloat(wsolPostBalance.uiTokenAmount.amount);
+ 
 
         if(isJupiter) {  
-          if (postTokenAAmount > preTokenAAmount) {  
+          if (postTokenAAmount > preTokenAAmount) {   
             logger.trace({ signature: chunk.signature }, `Detected Jupiter Buy Swap`); 
-            await bot.sell(chunk.accountId, TOKEN_ACCOUNT, poolState[0], minimal);
+            await bot.sell(chunk.accountId, TOKEN_ACCOUNT, poolState);
             return;
           } 
         } else { 
-          if (postWsolAmount > preWsolAmount && postTokenAAmount < preTokenAAmount) { 
+          if (postTokenAAmount < preTokenAAmount) { 
+            
             logger.trace({ signature: chunk.signature }, `Detected Buy Swap`); 
-            await bot.sell(chunk.accountId, TOKEN_ACCOUNT, poolState[0], minimal);
+            const buySwapAmountLamports =  postWsolAmountLamports - preWsolAmountLamports; // Amount of WSOL swapped 
+    
+              // Convert MINIMUM_BUY_TRIGGER from SOL to lamports
+            const minimumBuyTriggerLamports = MINIMUM_BUY_TRIGGER * 1e9;
+            
+      
+            if (buySwapAmountLamports <= minimumBuyTriggerLamports) { 
+              logger.trace({ signature: chunk.signature }, `Detected Swap below minimum trigger amount or not Buy`);
+              return;
+            } 
+     
+            await bot.sell(chunk.accountId, TOKEN_ACCOUNT, poolState);
           } 
-        }
+        }  
+        
       } else {
         logger.error(`Could not find matching WSOL or TokenA accounts in the transaction.`);
       }

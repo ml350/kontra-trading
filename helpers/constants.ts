@@ -45,5 +45,9 @@ export const MAX_SELL_RETRIES = Number(retrieveEnvVariable('MAX_SELL_RETRIES', l
 export const SELL_SLIPPAGE = Number(retrieveEnvVariable('SELL_SLIPPAGE', logger));
 
 export const TOKEN_ACCOUNT = retrieveEnvVariable('TOKEN_ACCOUNT', logger);
-
+export const PRICE_SET = Number(retrieveEnvVariable('PRICE_SET', logger));
+export const MINIMUM_BUY_TRIGGER = Number(retrieveEnvVariable('MINIMUM_BUY_TRIGGER', logger));
+export const AVG_SELL_AMOUNT = Number(retrieveEnvVariable('AVG_SELL_AMOUNT', logger));
+export const HIGH_SELL_AMOUNT = Number(retrieveEnvVariable('HIGH_SELL_AMOUNT', logger));
+export const LOW_SELL_AMOUNT = Number(retrieveEnvVariable('LOW_SELL_AMOUNT', logger));
  
