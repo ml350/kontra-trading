@@ -38,11 +38,29 @@ import Client from "@triton-one/yellowstone-grpc";
 import bs58 from 'bs58';
 import { PoolKeys } from './utils/getPoolKeys';
 
+import fs from 'fs';
+import path from 'path';
+
 const client = new Client(GRPC_ENDPOINT, GRPC_TOKEN,
   {
     "grpc.max_receive_message_length": 1024 * 1024 * 2048,
   } 
 ) 
+
+// Function to load blacklisted wallets from blacklist.txt
+function loadBlacklist() {
+  const filePath = path.join(__dirname, 'blacklist.txt');
+  try {
+    const data = fs.readFileSync(filePath, 'utf8');
+    return new Set(data.split('\n').map(line => line.trim()).filter(Boolean));
+  } catch (error) {
+    logger.error('Failed to load blacklist:', error);
+    return new Set();
+  }
+}
+
+const blacklist = loadBlacklist();
+
 const connection = new Connection(RPC_ENDPOINT, {
   wsEndpoint: RPC_WEBSOCKET_ENDPOINT,
   commitment: COMMITMENT_LEVEL,
@@ -215,6 +233,8 @@ const runListener = async () => {
       logger.error(`Transaction not found: ${chunk.signature}`);
       return;
     } else { 
+      const buyerPublicKey = tx.transaction.message.accountKeys[0].pubkey.toBase58();
+      console.log("Buyer Wallet Address:", buyerPublicKey);
       const jupiterProgramId = "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4"; // Jupiter Aggregator Program ID
       let isJupiter = false;
       // Get pre/post balances and account keys
