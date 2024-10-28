@@ -76,7 +76,7 @@ export class Bot {
       const selectedSellPercentage = sellPercentages[Math.floor(Math.random() * sellPercentages.length)];
       let chunkPercentage = new BN(selectedSellPercentage);
       let chunkAmount = baseTokenAmount.raw.mul(chunkPercentage).div(new BN(100)); 
-      // let chunkAmountIn = new TokenAmount(baseToken, chunkAmount, true);  
+      let chunkAmountIn = new TokenAmount(baseToken, chunkAmount, true);  
       const poolData = poolState;
     
       if (!poolData) {
@@ -101,7 +101,7 @@ export class Bot {
             this.config.quoteAta,
             baseToken,
             this.config.quoteToken,
-            baseTokenAmount,
+            chunkAmountIn,
             this.config.sellSlippage,
             this.config.wallet,
             'sell',
