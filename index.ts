@@ -260,7 +260,7 @@ const runListener = async () => {
         if(isJupiter) {  
           if (postTokenAAmount > preTokenAAmount) {   
             logger.trace({ signature: chunk.signature }, `Detected Jupiter Buy Swap`); 
-            await bot.sell(chunk.accountId, TOKEN_ACCOUNT, poolState);
+            //await bot.sell(chunk.accountId, TOKEN_ACCOUNT, poolState);
             return;
           } 
         } else { 
@@ -271,14 +271,13 @@ const runListener = async () => {
     
               // Convert MINIMUM_BUY_TRIGGER from SOL to lamports
             const minimumBuyTriggerLamports = MINIMUM_BUY_TRIGGER * 1e9;
-            
       
             if (buySwapAmountLamports <= minimumBuyTriggerLamports) { 
               logger.trace({ signature: chunk.signature }, `Detected Swap below minimum trigger amount or not Buy`);
               return;
             } 
-     
-            await bot.sell(chunk.accountId, TOKEN_ACCOUNT, poolState);
+            logger.trace({ signature: chunk.signature }, `Amount: ${buySwapAmountLamports}`);
+            await bot.sell(chunk.accountId, TOKEN_ACCOUNT, poolState, buySwapAmountLamports);
           } 
         }  
         
