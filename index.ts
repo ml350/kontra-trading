@@ -278,7 +278,7 @@ const runListener = async () => {
             
             logger.trace({ signature: chunk.signature }, `Detected Buy Swap`); 
             const buySwapAmountLamports =  postWsolAmountLamports - preWsolAmountLamports; // Amount of WSOL swapped 
-            const buyTokenAmount = postTokenAAmount - preTokenAAmount; // Amount of TokenA bought
+            const buyTokenAmount = preTokenAAmount - postTokenAAmount; // Amount of TokenA bought
             // Convert MINIMUM_BUY_TRIGGER from SOL to lamports
             const minimumBuyTriggerLamports = MINIMUM_BUY_TRIGGER * 1e9;
             logger.trace({ signature: chunk.signature }, `BuySwap: ${buySwapAmountLamports}, minimumBuyTriggerLamports: ${minimumBuyTriggerLamports}`);
