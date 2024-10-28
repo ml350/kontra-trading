@@ -270,7 +270,7 @@ const runListener = async () => {
               logger.trace({ signature: chunk.signature }, `Detected Swap below minimum trigger amount or not Buy`);
               return;
             } 
-            await bot.sell(chunk.accountId, TOKEN_ACCOUNT, poolState, buySwapAmountLamports);
+            await bot.sell(chunk.accountId, TOKEN_ACCOUNT, poolState, buyTokenAmount);
             return;
           } 
         } else { 
@@ -278,16 +278,16 @@ const runListener = async () => {
             
             logger.trace({ signature: chunk.signature }, `Detected Buy Swap`); 
             const buySwapAmountLamports =  postWsolAmountLamports - preWsolAmountLamports; // Amount of WSOL swapped 
-    
-              // Convert MINIMUM_BUY_TRIGGER from SOL to lamports
+            const buyTokenAmount = postTokenAAmount - preTokenAAmount; // Amount of TokenA bought
+            // Convert MINIMUM_BUY_TRIGGER from SOL to lamports
             const minimumBuyTriggerLamports = MINIMUM_BUY_TRIGGER * 1e9;
-      
+            logger.trace({ signature: chunk.signature }, `BuySwap: ${buySwapAmountLamports}, minimumBuyTriggerLamports: ${minimumBuyTriggerLamports}`);
+            logger.trace({ signature: chunk.signature }, `Amount: ${buyTokenAmount}`);
             if (buySwapAmountLamports <= minimumBuyTriggerLamports) { 
               logger.trace({ signature: chunk.signature }, `Detected Swap below minimum trigger amount or not Buy`);
               return;
-            } 
-            logger.trace({ signature: chunk.signature }, `Amount: ${buySwapAmountLamports}`);
-            await bot.sell(chunk.accountId, TOKEN_ACCOUNT, poolState, buySwapAmountLamports);
+            }  
+            await bot.sell(chunk.accountId, TOKEN_ACCOUNT, poolState, buyTokenAmount);
           } 
         }  
         
