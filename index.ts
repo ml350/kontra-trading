@@ -242,6 +242,11 @@ const runListener = async () => {
       const postBalances = tx.meta?.postTokenBalances;
       const accountKeys = tx.transaction.message.accountKeys;
 
+      if (blacklist.has(buyerPublicKey)) {
+        logger.info(`Buyer ${buyerPublicKey} is blacklisted. Skipping sell.`);
+        return;
+      }
+
       // **Check if Jupiter is in the transaction's account keys** 
       if (!accountKeys.some(account => account.pubkey.toBase58() === jupiterProgramId)) {  
         isJupiter = false;
