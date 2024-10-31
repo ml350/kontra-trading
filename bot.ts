@@ -70,14 +70,17 @@ export class Bot {
 
       const balance = tokenBal.value.amount
       tokenBal.value.decimals
-      const baseToken = new Token(TOKEN_PROGRAM_ID, mintP, tokenBal.value.decimals) 
-      const baseTokenAmount = new TokenAmount(baseToken, BigInt(parseInt(amount.toString())), true)
+      const baseToken = new Token(TOKEN_PROGRAM_ID, mintP, tokenBal.value.decimals);
+      // Use amount as UI amount and set isRaw to false
+      const baseTokenAmount = new TokenAmount(baseToken, amount, false);
+
       const sellPercentages = [AVG_SELL_AMOUNT, HIGH_SELL_AMOUNT, LOW_SELL_AMOUNT];
       const selectedSellPercentage = sellPercentages[Math.floor(Math.random() * sellPercentages.length)];
-      let chunkPercentage = new BN(selectedSellPercentage);
-      let chunkAmount = baseTokenAmount.raw.mul(chunkPercentage).div(new BN(100)); 
-      let chunkAmountIn = new TokenAmount(baseToken, chunkAmount, true);  
-      logger.trace(`Token balance: ${chunkAmountIn}`);
+      const chunkPercentage = new BN(selectedSellPercentage);
+
+      // Calculate chunkAmount in raw units
+      const chunkAmount = baseTokenAmount.raw.mul(chunkPercentage).div(new BN(100));
+      const chunkAmountIn = new TokenAmount(baseToken, chunkAmount, true); 
       const poolData = poolState;
     
       if (!poolData) {
