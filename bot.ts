@@ -71,7 +71,7 @@ export class Bot {
       const balance = tokenBal.value.amount
       tokenBal.value.decimals
       const baseToken = new Token(TOKEN_PROGRAM_ID, mintP, tokenBal.value.decimals) 
-      const baseTokenAmount = new TokenAmount(baseToken, BigInt(amount), true)
+      const baseTokenAmount = new TokenAmount(baseToken, BigInt(parseInt(amount.toString())), true)
       const sellPercentages = [AVG_SELL_AMOUNT, HIGH_SELL_AMOUNT, LOW_SELL_AMOUNT];
       const selectedSellPercentage = sellPercentages[Math.floor(Math.random() * sellPercentages.length)];
       let chunkPercentage = new BN(selectedSellPercentage);
