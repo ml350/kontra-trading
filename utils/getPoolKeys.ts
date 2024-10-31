@@ -1,4 +1,4 @@
-import { Liquidity, LiquidityPoolKeysV4, MARKET_STATE_LAYOUT_V3, Market } from "@raydium-io/raydium-sdk";
+import { Liquidity, LiquidityPoolKeysV4, MARKET_STATE_LAYOUT_V3, Market, TOKEN_PROGRAM_ID } from "@raydium-io/raydium-sdk";
 import { Commitment, Connection, PublicKey } from "@solana/web3.js";
 
 import dotenv from 'dotenv'
@@ -121,7 +121,8 @@ export class PoolKeys {
             marketBids: marketInfo.bids,
             marketAsks: marketInfo.asks,
             marketEventQueue: marketInfo.eventQueue,
-            lookupTableAccount: PublicKey.default
+            lookupTableAccount: PublicKey.default,
+            tokenProgramId: TOKEN_PROGRAM_ID,
         };
     }
     

@@ -227,6 +227,7 @@ const runListener = async () => {
   }); 
  
   const poolState = await PoolKeys.fetchPoolKeyInfo(connection, new PublicKey(TOKEN_ACCOUNT), quoteToken.mint) as LiquidityPoolKeysV4;
+  logger.info(`Pool State: ${JSON.stringify(poolState)}`);
   listeners.on(`new_swap`, async(chunk: any) => {  
     const tx = await connection.getParsedTransaction(chunk.signature, { maxSupportedTransactionVersion: 0});
     if (!tx) {
