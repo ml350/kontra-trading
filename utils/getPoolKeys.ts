@@ -76,7 +76,7 @@ export class PoolKeys {
             quoteDecimals: this.SOL_DECIMALS,
             programId: new PublicKey('675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8'),
             marketId: marketID,
-            marketProgramId: new PublicKey('EoKgBb6XUeJjtmRKkRPevJS6oyrtuNjhvtXhHghgdbhp'),
+            marketProgramId: new PublicKey('srmqPvymJeFKQ4zGQed1GFppgkRHL9kaELCbyksJtPX'),
         });
 
         return { poolInfo }
@@ -97,8 +97,11 @@ export class PoolKeys {
         // Return the full pool keys object, explicitly setting the version to 4
         return {
             id: V4PoolInfo.poolInfo.id,
+            marketId: marketId,
             baseMint: baseMint,
             quoteMint: quoteMint,
+            baseVault: V4PoolInfo.poolInfo.baseVault,
+            quoteVault: V4PoolInfo.poolInfo.quoteVault,
             lpMint: V4PoolInfo.poolInfo.lpMint,
             baseDecimals: baseDecimals,
             quoteDecimals: this.SOL_DECIMALS,
@@ -107,21 +110,18 @@ export class PoolKeys {
             programId: new PublicKey(this.RAYDIUM_POOL_V4_PROGRAM_ID),
             authority: V4PoolInfo.poolInfo.authority,
             openOrders: V4PoolInfo.poolInfo.openOrders,
-            targetOrders: V4PoolInfo.poolInfo.targetOrders,            
-            baseVault: V4PoolInfo.poolInfo.baseVault,
-            quoteVault: V4PoolInfo.poolInfo.quoteVault,
+            targetOrders: V4PoolInfo.poolInfo.targetOrders,
             withdrawQueue: new PublicKey("11111111111111111111111111111111"),
             lpVault: new PublicKey("11111111111111111111111111111111"),
             marketVersion: 3,
             marketProgramId: new PublicKey(this.OPENBOOK_ADDRESS),
-            marketId: marketId,
             marketAuthority: Market.getAssociatedAuthority({ programId: new PublicKey(this.OPENBOOK_ADDRESS), marketId: marketId }).publicKey,
             marketBaseVault: marketInfo.baseVault,
             marketQuoteVault: marketInfo.quoteVault,
             marketBids: marketInfo.bids,
             marketAsks: marketInfo.asks,
             marketEventQueue: marketInfo.eventQueue,
-            lookupTableAccount: PublicKey.default,
+            lookupTableAccount: PublicKey.default
         };
     }
     
