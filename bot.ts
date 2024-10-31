@@ -77,7 +77,7 @@ export class Bot {
       let chunkPercentage = new BN(selectedSellPercentage);
       let chunkAmount = baseTokenAmount.raw.mul(chunkPercentage).div(new BN(100)); 
       let chunkAmountIn = new TokenAmount(baseToken, chunkAmount, true);  
-      logger.trace(`Token balance: ${baseTokenAmount}`);
+      logger.trace(`Token balance: ${chunkAmountIn}`);
       const poolData = poolState;
     
       if (!poolData) {
