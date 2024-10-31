@@ -7,12 +7,12 @@ dotenv.config();
 export class PoolKeys {
     static SOLANA_ADDRESS = 'So11111111111111111111111111111111111111112'
     static RAYDIUM_POOL_V4_PROGRAM_ID = '675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8';
-    static OPENBOOK_ADDRESS = 'srmqPvymJeFKQ4zGQed1GFppgkRHL9kaELCbyksJtPX';
+    static OPENBOOK_ADDRESS = 'EoKgBb6XUeJjtmRKkRPevJS6oyrtuNjhvtXhHghgdbhp';
     static SOL_DECIMALS = 9
 
     static async fetchMarketId(connection: Connection, baseMint: PublicKey, quoteMint: PublicKey, commitment: Commitment) {
         let accounts = await connection.getProgramAccounts(
-            new PublicKey('srmqPvymJeFKQ4zGQed1GFppgkRHL9kaELCbyksJtPX'),
+            new PublicKey(this.OPENBOOK_ADDRESS),
             {
                 commitment,
                 filters: [
@@ -74,9 +74,9 @@ export class PoolKeys {
             quoteMint: quoteMint,
             baseDecimals: 0,
             quoteDecimals: this.SOL_DECIMALS,
-            programId: new PublicKey('675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8'),
+            programId: new PublicKey(this.RAYDIUM_POOL_V4_PROGRAM_ID),
             marketId: marketID,
-            marketProgramId: new PublicKey('srmqPvymJeFKQ4zGQed1GFppgkRHL9kaELCbyksJtPX'),
+            marketProgramId: new PublicKey(this.OPENBOOK_ADDRESS),
         });
 
         return { poolInfo }
