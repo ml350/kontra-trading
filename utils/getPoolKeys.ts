@@ -34,7 +34,7 @@ export class PoolKeys {
         );
         if(!accounts)
         accounts = await connection.getProgramAccounts(
-            new PublicKey('srmqPvymJeFKQ4zGQed1GFppgkRHL9kaELCbyksJtPX'),
+            new PublicKey(this.OPENBOOK_ADDRESS),
             {
                 commitment,
                 filters: [
