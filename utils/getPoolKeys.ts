@@ -1,4 +1,4 @@
-import { Liquidity, LiquidityPoolKeysV4, MARKET_STATE_LAYOUT_V3, Market, TOKEN_PROGRAM_ID } from "@raydium-io/raydium-sdk";
+import { Liquidity, LiquidityPoolKeysV4, MARKET_STATE_LAYOUT_V3, Market } from "@raydium-io/raydium-sdk";
 import { Commitment, Connection, PublicKey } from "@solana/web3.js";
 
 import dotenv from 'dotenv'
@@ -7,12 +7,12 @@ dotenv.config();
 export class PoolKeys {
     static SOLANA_ADDRESS = 'So11111111111111111111111111111111111111112'
     static RAYDIUM_POOL_V4_PROGRAM_ID = '675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8';
-    static OPENBOOK_ADDRESS = 'EoKgBb6XUeJjtmRKkRPevJS6oyrtuNjhvtXhHghgdbhp';
+    static OPENBOOK_ADDRESS = 'srmqPvymJeFKQ4zGQed1GFppgkRHL9kaELCbyksJtPX';
     static SOL_DECIMALS = 9
 
     static async fetchMarketId(connection: Connection, baseMint: PublicKey, quoteMint: PublicKey, commitment: Commitment) {
         let accounts = await connection.getProgramAccounts(
-            new PublicKey(this.OPENBOOK_ADDRESS),
+            new PublicKey('srmqPvymJeFKQ4zGQed1GFppgkRHL9kaELCbyksJtPX'),
             {
                 commitment,
                 filters: [
@@ -34,7 +34,7 @@ export class PoolKeys {
         );
         if(!accounts)
         accounts = await connection.getProgramAccounts(
-            new PublicKey(this.OPENBOOK_ADDRESS),
+            new PublicKey('srmqPvymJeFKQ4zGQed1GFppgkRHL9kaELCbyksJtPX'),
             {
                 commitment,
                 filters: [
@@ -58,7 +58,7 @@ export class PoolKeys {
     }
 
     static async fetchMarketInfo(connection: Connection, marketId: PublicKey) {
-        const marketAccountInfo = await connection.getAccountInfo(marketId, "processed");
+        const marketAccountInfo = await connection.getAccountInfo(marketId, "confirmed");
         if (!marketAccountInfo) {
             throw new Error('Failed to fetch market info for market id ' + marketId.toBase58());
         }
@@ -74,9 +74,9 @@ export class PoolKeys {
             quoteMint: quoteMint,
             baseDecimals: 0,
             quoteDecimals: this.SOL_DECIMALS,
-            programId: new PublicKey(this.RAYDIUM_POOL_V4_PROGRAM_ID),
+            programId: new PublicKey('675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8'),
             marketId: marketID,
-            marketProgramId: new PublicKey(this.OPENBOOK_ADDRESS),
+            marketProgramId: new PublicKey('srmqPvymJeFKQ4zGQed1GFppgkRHL9kaELCbyksJtPX'),
         });
 
         return { poolInfo }
@@ -122,7 +122,6 @@ export class PoolKeys {
             marketAsks: marketInfo.asks,
             marketEventQueue: marketInfo.eventQueue,
             lookupTableAccount: PublicKey.default,
-            tokenProgramId: TOKEN_PROGRAM_ID,
         };
     }
     
