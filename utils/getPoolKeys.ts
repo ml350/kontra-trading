@@ -116,11 +116,11 @@ export class PoolKeys {
             marketVersion: 3,
             marketProgramId: new PublicKey(this.OPENBOOK_ADDRESS),
             marketAuthority: Market.getAssociatedAuthority({ programId: new PublicKey(this.OPENBOOK_ADDRESS), marketId: marketId }).publicKey,
-            marketBaseVault: marketInfo.baseVault,
-            marketQuoteVault: marketInfo.quoteVault,
-            marketBids: marketInfo.bids,
-            marketAsks: marketInfo.asks,
-            marketEventQueue: marketInfo.eventQueue,
+            // marketBaseVault: marketInfo.baseVault,
+            // marketQuoteVault: marketInfo.quoteVault,
+            // marketBids: marketInfo.bids,
+            // marketAsks: marketInfo.asks,
+            // marketEventQueue: marketInfo.eventQueue,
             lookupTableAccount: PublicKey.default,
         };
     }
