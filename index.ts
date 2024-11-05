@@ -233,8 +233,7 @@ const runListener = async () => {
       logger.error(`Transaction not found: ${chunk.signature}`);
       return;
     } else { 
-      const buyerPublicKey = tx.transaction.message.accountKeys[0].pubkey.toBase58();
-      console.log("Buyer Wallet Address:", buyerPublicKey);
+      const buyerPublicKey = tx.transaction.message.accountKeys[0].pubkey.toBase58(); 
       const jupiterProgramId = "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4"; // Jupiter Aggregator Program ID
       let isJupiter = false;
       // Get pre/post balances and account keys
