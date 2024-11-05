@@ -84,7 +84,7 @@ export class Bot {
       const poolData = poolState;
     
       if (!poolData) {
-        logger.trace({ mint: mintP.toString() }, `Token pool data is not found, can't sell`);
+        logger.warn({ mint: mintP.toString() }, `Token pool data is not found, can't sell`);
         return;
       } 
       if (baseTokenAmount.isZero()) {
@@ -112,7 +112,7 @@ export class Bot {
           ); 
 
           if (result.confirmed) {
-            logger.trace(
+            logger.info(
               {
                 dex: `https://dexscreener.com/solana/${mintP.toString()}?maker=${this.config.wallet.publicKey}`,
                 mint: mintP.toString(),
@@ -215,6 +215,5 @@ export class Bot {
     transaction.sign([wallet, ...innerTransaction.signers]);
 
     return this.txExecutor.executeAndConfirm(transaction, wallet, latestBlockhash);
-  }
-   
+  } 
 }

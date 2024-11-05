@@ -242,8 +242,7 @@ const runListener = async () => {
       const postBalances = tx.meta?.postTokenBalances;
       const accountKeys = tx.transaction.message.accountKeys;
 
-      if (blacklist.has(buyerPublicKey)) {
-        logger.info(`Buyer ${buyerPublicKey} is blacklisted. Skipping sell.`);
+      if (blacklist.has(buyerPublicKey)) { 
         return;
       }
 
@@ -284,7 +283,7 @@ const runListener = async () => {
 
         if(isJupiter) {  
           if (postTokenAAmount > preTokenAAmount) {   
-            logger.trace({ signature: chunk.signature }, `Detected Jupiter Buy Swap`); 
+            logger.trace({ signature: chunk.signature }, `Jupiter Buy Swap`); 
             const buySwapAmountLamports = postWsolAmountLamports - preWsolAmountLamports; // Amount of WSOL swapped 
             const buyTokenAmount = postTokenAAmount - preTokenAAmount; // Amount of TokenA bought
               // Convert MINIMUM_BUY_TRIGGER from SOL to lamports
@@ -301,7 +300,7 @@ const runListener = async () => {
         } else { 
           if (postTokenAAmount < preTokenAAmount) { 
             
-            logger.trace({ signature: chunk.signature }, `Detected Buy Swap`); 
+            logger.trace({ signature: chunk.signature }, `Raydium Buy Swap`); 
             const buySwapAmountLamports =  postWsolAmountLamports - preWsolAmountLamports; // Amount of WSOL swapped 
             const buyTokenAmount = preTokenAAmount - postTokenAAmount; // Amount of TokenA bought
             // Convert MINIMUM_BUY_TRIGGER from SOL to lamports
