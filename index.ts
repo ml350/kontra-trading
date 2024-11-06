@@ -28,9 +28,7 @@ import {
   CUSTOM_FEE,
   TOKEN_ACCOUNT,
   GRPC_ENDPOINT,
-  GRPC_TOKEN,
-  MINIMAL_MARKET_STATE_LAYOUT_V3,
-  getMinimalMarketV3,
+  GRPC_TOKEN, 
   MINIMUM_BUY_TRIGGER, 
 } from './helpers';  
 import { JitoTransactionExecutor } from './transactions/jito-rpc-transaction-executor';
@@ -75,113 +73,7 @@ function printDetails(wallet: Keypair, quoteToken: Token, bot: Bot) {
  
 
   logger.info('Bot is running! Press CTRL + C to stop it.');
-}
-
-async function fetchRawAccountsByMintAddress(
-  connection: Connection,
-  mintAddress: string
-) {
-  const mintPubKey = new PublicKey(mintAddress);
-
-  // Fetch all token accounts associated with the mint address
-  const accounts = await connection.getProgramAccounts(TOKEN_PROGRAM_ID, {
-    filters: [
-      {
-        dataSize: 165,
-      },
-      {
-        // Filter by mint address
-        memcmp: {
-          offset: 32, // The mint address is at offset 0 in the token account layout
-          bytes: mintPubKey.toBase58(),
-        },
-      },
-    ],
-  });
-
-  // Deserialize each account to get the RawAccount (Token Account Data)
-  const rawAccounts = accounts.map((account) => {
-    const accountInfo = AccountLayout.decode(account.account.data);
-    return {
-      pubkey: account.pubkey.toBase58(),
-      accountInfo,
-    };
-  });
-
-  return rawAccounts;
-}
-
-async function fetchLiquidityStateByMintAddress(
-  connection: Connection,
-  mintAddress: string
-) {
-  const mintPubKey = new PublicKey(mintAddress);
-
-  // Fetching all program accounts for Raydium's liquidity program
-  const accounts = await connection.getProgramAccounts(MAINNET_PROGRAM_ID.AmmV4, {
-    filters: [
-      { dataSize: LIQUIDITY_STATE_LAYOUT_V4.span },
-      {
-        // Filtering by the mint address (either base or quote token in the pool)
-        memcmp: {
-          offset: LIQUIDITY_STATE_LAYOUT_V4.offsetOf('baseMint'), // Adjust based on your token's role in the pool (base/quote)
-          bytes: mintPubKey.toBase58(),
-        },
-      },
-      {
-        memcmp: {
-          offset: LIQUIDITY_STATE_LAYOUT_V4.offsetOf('marketProgramId'),
-          bytes: MAINNET_PROGRAM_ID.OPENBOOK_MARKET.toBase58(),
-        },
-      },
-      {
-        memcmp: {
-          offset: LIQUIDITY_STATE_LAYOUT_V4.offsetOf('status'),
-          bytes: bs58.encode([6, 0, 0, 0, 0, 0, 0, 0]),
-        },
-      },
-    ],
-  });
-
-  // Deserializing each account data to get LiquidityStateV4
-  const liquidityStates = accounts.map((account) => {
-    return LIQUIDITY_STATE_LAYOUT_V4.decode(account.account.data);
-  });
-
-  return liquidityStates;
-}
-
-async function fetchMarketStateByMintAddress(
-  connection: Connection,
-  mintAddress: string
-) {
-  const mintPubKey = new PublicKey(mintAddress);
-
-  // Fetch all program accounts for Serum's DEX program (V3 in this case)
-  const accounts = await connection.getProgramAccounts(MAINNET_PROGRAM_ID.OPENBOOK_MARKET, {
-    commitment: connection.commitment,
-      dataSlice: {
-        offset: MARKET_STATE_LAYOUT_V3.offsetOf('eventQueue'),
-        length: MINIMAL_MARKET_STATE_LAYOUT_V3.span,
-      },
-      filters: [
-        { dataSize: MARKET_STATE_LAYOUT_V3.span },
-        {
-          memcmp: {
-            offset: MARKET_STATE_LAYOUT_V3.offsetOf('quoteMint'),
-            bytes: mintPubKey.toBase58(),
-          },
-        },
-      ]
-  });
-
-  // Deserialize each account data to get MARKET_STATE_LAYOUT_V3
-  const marketStates = accounts.map((account) => {
-    return MARKET_STATE_LAYOUT_V3.decode(account.account.data);
-  });
-
-  return marketStates;
-}
+} 
 
 const runListener = async () => {
   logger.level = LOG_LEVEL;
@@ -270,47 +162,42 @@ const runListener = async () => {
  
      
       if (wsolPreBalance && tokenAPreBalance && wsolPostBalance && tokenAPostBalance) {
-        const preWsolAmount = wsolPreBalance.uiTokenAmount.uiAmount || 0;
-        const postWsolAmount = wsolPostBalance.uiTokenAmount.uiAmount || 0;
-
-        const preTokenAAmount = tokenAPreBalance?.uiTokenAmount.uiAmount || 0;
-        const postTokenAAmount = tokenAPostBalance.uiTokenAmount.uiAmount || 0;
-        
-        const preWsolAmountLamports = parseFloat(wsolPreBalance.uiTokenAmount.amount);
-        const postWsolAmountLamports = parseFloat(wsolPostBalance.uiTokenAmount.amount);
+        const preWsolAmountLamports = BigInt(wsolPreBalance.uiTokenAmount.amount);
+        const postWsolAmountLamports = BigInt(wsolPostBalance.uiTokenAmount.amount);
+        const preTokenAAmount = BigInt(tokenAPreBalance.uiTokenAmount.amount);
+        const postTokenAAmount = BigInt(tokenAPostBalance.uiTokenAmount.amount);
  
 
         if(isJupiter) {  
           if (postTokenAAmount > preTokenAAmount) {   
             logger.trace({ signature: chunk.signature }, `Jupiter Buy Swap`); 
-            const buySwapAmountLamports = postWsolAmountLamports - preWsolAmountLamports; // Amount of WSOL swapped 
-            const buyTokenAmount = postTokenAAmount - preTokenAAmount; // Amount of TokenA bought
-              // Convert MINIMUM_BUY_TRIGGER from SOL to lamports
-            const minimumBuyTriggerLamports = MINIMUM_BUY_TRIGGER * 1e9;
+            const buySwapAmountLamports = postWsolAmountLamports - preWsolAmountLamports;
+            const buyTokenAmount = postTokenAAmount - preTokenAAmount;
+            const minimumBuyTriggerLamports = BigInt(MINIMUM_BUY_TRIGGER * 1e9);
+  
             logger.trace({ signature: chunk.signature }, `BuySwap: ${buySwapAmountLamports}, minimumBuyTriggerLamports: ${minimumBuyTriggerLamports}`);
             logger.trace({ signature: chunk.signature }, `Amount: ${buyTokenAmount}`);
             if (buySwapAmountLamports <= minimumBuyTriggerLamports) { 
               logger.trace({ signature: chunk.signature }, `Detected Swap below minimum trigger amount or not Buy`);
               return;
             } 
-            await bot.sell(chunk.accountId, TOKEN_ACCOUNT, poolState, buyTokenAmount);
+            await bot.sell(chunk.accountId, TOKEN_ACCOUNT, poolState, Number(buyTokenAmount));
             return;
           } 
         } else { 
           if (postTokenAAmount < preTokenAAmount) { 
-            
             logger.trace({ signature: chunk.signature }, `Raydium Buy Swap`); 
-            const buySwapAmountLamports =  postWsolAmountLamports - preWsolAmountLamports; // Amount of WSOL swapped 
-            const buyTokenAmount = preTokenAAmount - postTokenAAmount; // Amount of TokenA bought
-            // Convert MINIMUM_BUY_TRIGGER from SOL to lamports
-            const minimumBuyTriggerLamports = MINIMUM_BUY_TRIGGER * 1e9;
+            const buySwapAmountLamports = postWsolAmountLamports - preWsolAmountLamports;
+            const buyTokenAmount = preTokenAAmount - postTokenAAmount;
+            const minimumBuyTriggerLamports = BigInt(MINIMUM_BUY_TRIGGER * 1e9);
+  
             logger.trace({ signature: chunk.signature }, `BuySwap: ${buySwapAmountLamports}, minimumBuyTriggerLamports: ${minimumBuyTriggerLamports}`);
             logger.trace({ signature: chunk.signature }, `Amount: ${buyTokenAmount}`);
             if (buySwapAmountLamports <= minimumBuyTriggerLamports) { 
               logger.trace({ signature: chunk.signature }, `Detected Swap below minimum trigger amount or not Buy`);
               return;
             }  
-            await bot.sell(chunk.accountId, TOKEN_ACCOUNT, poolState, buyTokenAmount);
+            await bot.sell(chunk.accountId, TOKEN_ACCOUNT, poolState, Number(buyTokenAmount));
           } 
         }  
         
