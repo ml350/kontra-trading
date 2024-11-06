@@ -38,6 +38,7 @@ import { PoolKeys } from './utils/getPoolKeys';
 
 import fs from 'fs';
 import path from 'path';
+import { log } from 'console';
 
 const client = new Client(GRPC_ENDPOINT, GRPC_TOKEN,
   {
@@ -161,20 +162,18 @@ const runListener = async () => {
       const tokenAPostBalance = postBalances.find(balance => balance.mint === tokenAMint);
  
      
-      if (wsolPreBalance && tokenAPreBalance && wsolPostBalance && tokenAPostBalance) {
-        const preWsolAmount = wsolPreBalance.uiTokenAmount.uiAmount || 0;
-        const postWsolAmount = wsolPostBalance.uiTokenAmount.uiAmount || 0;
-
+      if (wsolPreBalance && tokenAPreBalance && wsolPostBalance && tokenAPostBalance) {  
         const preTokenAAmount = tokenAPreBalance?.uiTokenAmount.uiAmount || 0;
-        const postTokenAAmount = tokenAPostBalance.uiTokenAmount.uiAmount || 0;
-        
+        const postTokenAAmount = tokenAPostBalance.uiTokenAmount.uiAmount || 0; 
         const preWsolAmountLamports = parseFloat(wsolPreBalance.uiTokenAmount.amount);
         const postWsolAmountLamports = parseFloat(wsolPostBalance.uiTokenAmount.amount);
  
 
         if(isJupiter) {  
           if (postTokenAAmount > preTokenAAmount) {   
-            logger.trace({ signature: chunk.signature }, `Jupiter Buy Swap`); 
+            logger.trace({ signature: chunk.signature }, `Jupiter Buy Swap`);
+            logger.trace(`preTokenAAmount: ${preTokenAAmount}, postTokenAAmount: ${postTokenAAmount}`);
+            logger.trace(`preWsolAmountLamports: ${preWsolAmountLamports}, postWsolAmountLamports: ${postWsolAmountLamports}`); 
             const buySwapAmountLamports = postWsolAmountLamports - preWsolAmountLamports; // Amount of WSOL swapped 
             const buyTokenAmount = postTokenAAmount - preTokenAAmount; // Amount of TokenA bought
               // Convert MINIMUM_BUY_TRIGGER from SOL to lamports
