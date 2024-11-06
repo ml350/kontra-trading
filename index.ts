@@ -162,42 +162,47 @@ const runListener = async () => {
  
      
       if (wsolPreBalance && tokenAPreBalance && wsolPostBalance && tokenAPostBalance) {
-        const preWsolAmountLamports = BigInt(wsolPreBalance.uiTokenAmount.amount);
-        const postWsolAmountLamports = BigInt(wsolPostBalance.uiTokenAmount.amount);
-        const preTokenAAmount = BigInt(tokenAPreBalance.uiTokenAmount.amount);
-        const postTokenAAmount = BigInt(tokenAPostBalance.uiTokenAmount.amount);
+        const preWsolAmount = wsolPreBalance.uiTokenAmount.uiAmount || 0;
+        const postWsolAmount = wsolPostBalance.uiTokenAmount.uiAmount || 0;
+
+        const preTokenAAmount = tokenAPreBalance?.uiTokenAmount.uiAmount || 0;
+        const postTokenAAmount = tokenAPostBalance.uiTokenAmount.uiAmount || 0;
+        
+        const preWsolAmountLamports = parseFloat(wsolPreBalance.uiTokenAmount.amount);
+        const postWsolAmountLamports = parseFloat(wsolPostBalance.uiTokenAmount.amount);
  
 
         if(isJupiter) {  
           if (postTokenAAmount > preTokenAAmount) {   
             logger.trace({ signature: chunk.signature }, `Jupiter Buy Swap`); 
-            const buySwapAmountLamports = postWsolAmountLamports - preWsolAmountLamports;
-            const buyTokenAmount = postTokenAAmount - preTokenAAmount;
-            const minimumBuyTriggerLamports = BigInt(MINIMUM_BUY_TRIGGER * 1e9);
-  
+            const buySwapAmountLamports = postWsolAmountLamports - preWsolAmountLamports; // Amount of WSOL swapped 
+            const buyTokenAmount = postTokenAAmount - preTokenAAmount; // Amount of TokenA bought
+              // Convert MINIMUM_BUY_TRIGGER from SOL to lamports
+            const minimumBuyTriggerLamports = MINIMUM_BUY_TRIGGER * 1e9;
             logger.trace({ signature: chunk.signature }, `BuySwap: ${buySwapAmountLamports}, minimumBuyTriggerLamports: ${minimumBuyTriggerLamports}`);
             logger.trace({ signature: chunk.signature }, `Amount: ${buyTokenAmount}`);
             if (buySwapAmountLamports <= minimumBuyTriggerLamports) { 
               logger.trace({ signature: chunk.signature }, `Detected Swap below minimum trigger amount or not Buy`);
               return;
             } 
-            await bot.sell(chunk.accountId, TOKEN_ACCOUNT, poolState, Number(buyTokenAmount));
+            await bot.sell(chunk.accountId, TOKEN_ACCOUNT, poolState, buyTokenAmount);
             return;
           } 
         } else { 
           if (postTokenAAmount < preTokenAAmount) { 
+            
             logger.trace({ signature: chunk.signature }, `Raydium Buy Swap`); 
-            const buySwapAmountLamports = postWsolAmountLamports - preWsolAmountLamports;
-            const buyTokenAmount = preTokenAAmount - postTokenAAmount;
-            const minimumBuyTriggerLamports = BigInt(MINIMUM_BUY_TRIGGER * 1e9);
-  
+            const buySwapAmountLamports =  postWsolAmountLamports - preWsolAmountLamports; // Amount of WSOL swapped 
+            const buyTokenAmount = preTokenAAmount - postTokenAAmount; // Amount of TokenA bought
+            // Convert MINIMUM_BUY_TRIGGER from SOL to lamports
+            const minimumBuyTriggerLamports = MINIMUM_BUY_TRIGGER * 1e9;
             logger.trace({ signature: chunk.signature }, `BuySwap: ${buySwapAmountLamports}, minimumBuyTriggerLamports: ${minimumBuyTriggerLamports}`);
             logger.trace({ signature: chunk.signature }, `Amount: ${buyTokenAmount}`);
             if (buySwapAmountLamports <= minimumBuyTriggerLamports) { 
               logger.trace({ signature: chunk.signature }, `Detected Swap below minimum trigger amount or not Buy`);
               return;
             }  
-            await bot.sell(chunk.accountId, TOKEN_ACCOUNT, poolState, Number(buyTokenAmount));
+            await bot.sell(chunk.accountId, TOKEN_ACCOUNT, poolState, buyTokenAmount);
           } 
         }  
         
