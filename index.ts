@@ -1,6 +1,6 @@
 import { MarketCache, PoolCache } from './cache';
 import { GrpcListeners } from './listeners';
-import { Connection, KeyedAccountInfo, Keypair, PublicKey } from '@solana/web3.js';
+import { Connection, KeyedAccountInfo, Keypair, LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
 import { Liquidity, LIQUIDITY_STATE_LAYOUT_V4, LiquidityPoolKeysV4, MAINNET_PROGRAM_ID, Market, MARKET_STATE_LAYOUT_V3, SERUM_PROGRAM_ID_V3, Token, TokenAmount } from '@raydium-io/raydium-sdk';
 import { AccountLayout, getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { Bot, BotConfig } from './bot';
@@ -30,21 +30,31 @@ import {
   GRPC_ENDPOINT,
   GRPC_TOKEN, 
   MINIMUM_BUY_TRIGGER, 
+  SOL_DIST,
+  THRESHOLD_SOL,
+  DIST_INTERVAL,
+  TELEGRAM_BOT_TOKEN,
+  TELEGRAM_CHAT_ID,
 } from './helpers';  
 import { JitoTransactionExecutor } from './transactions/jito-rpc-transaction-executor';
 import Client from "@triton-one/yellowstone-grpc"; 
 import bs58 from 'bs58';
 import { PoolKeys } from './utils/getPoolKeys';
+import { SystemProgram, Transaction } from '@solana/web3.js';
 
+import TelegramBot from 'node-telegram-bot-api';
 import fs from 'fs';
 import path from 'path';
-import { log } from 'console';
 
 const client = new Client(GRPC_ENDPOINT, GRPC_TOKEN,
   {
     "grpc.max_receive_message_length": 1024 * 1024 * 2048,
   } 
 ) 
+
+const telegramBot = new TelegramBot(TELEGRAM_BOT_TOKEN, { polling: false });
+// Define wsolMintPubKey
+const wsolMintPubKey = new PublicKey('So11111111111111111111111111111111111111112'); // WSOL mint
 
 // Function to load blacklisted wallets from blacklist.txt
 function loadBlacklist() {
@@ -57,6 +67,99 @@ function loadBlacklist() {
     return new Set();
   }
 }
+
+function loadWallets(): PublicKey[] {
+  const filePath = path.join(__dirname, 'wallets.txt');
+  try {
+    const data = fs.readFileSync(filePath, 'utf8');
+    const walletAddresses = data.split('\n').map(line => line.trim()).filter(Boolean);
+    return walletAddresses.map(address => new PublicKey(address));
+  } catch (error) {
+    logger.error('Failed to load wallets:', error);
+    return [];
+  }
+}
+
+async function distributeSol(wallet: Keypair): Promise<void> {
+  const wallets = loadWallets();
+  if (wallets.length === 0) {
+    logger.error('No wallets to distribute SOL to.');
+    return;
+  }
+
+  logger.trace('Checking wallets for top-up...');
+
+  // Get the main wallet's SOL balance
+  const mainWalletBalanceLamports = await connection.getBalance(wallet.publicKey);
+  const mainWalletBalanceSOL = mainWalletBalanceLamports / LAMPORTS_PER_SOL;
+
+  // Determine which wallets need a top-up
+  const walletsToTopUp: PublicKey[] = [];
+
+  for (const walletPubKey of wallets) {
+    logger.trace(`Checking wallet ${walletPubKey.toBase58()}...`);
+    // Get SOL balance
+    const balanceLamports = await connection.getBalance(walletPubKey);
+    const balanceSOL = balanceLamports / LAMPORTS_PER_SOL;
+
+    if (balanceSOL < THRESHOLD_SOL) {
+      walletsToTopUp.push(walletPubKey);
+    }
+  }
+
+  if (walletsToTopUp.length === 0) {
+    logger.info('No wallets need top-up at this time.');
+    return;
+  }
+
+  // Calculate total SOL required (including transaction fees)
+  const estimatedFeePerTransaction = 0.0005; // Approximate fee per transaction
+  const totalSolRequired = walletsToTopUp.length * (SOL_DIST + estimatedFeePerTransaction);
+
+  if (mainWalletBalanceSOL < totalSolRequired) {
+    const message = `Insufficient SOL balance in main wallet. Required: ${totalSolRequired.toFixed(5)} SOL, Available: ${mainWalletBalanceSOL.toFixed(5)} SOL. Distribution skipped.`;
+    logger.error(message);
+    await telegramBot.sendMessage(TELEGRAM_CHAT_ID, message);
+    return;
+  }
+
+  // Distribute SOL
+  for (const recipientPubKey of walletsToTopUp) {
+    try {
+      const transaction = new Transaction().add(
+        SystemProgram.transfer({
+          fromPubkey: wallet.publicKey,
+          toPubkey: recipientPubKey,
+          lamports: Math.floor(SOL_DIST * LAMPORTS_PER_SOL),
+        })
+      );
+
+      // Set a recent blockhash
+      const { blockhash } = await connection.getLatestBlockhash();
+      transaction.recentBlockhash = blockhash;
+      transaction.feePayer = wallet.publicKey;
+
+      // Sign the transaction with the main wallet's keypair
+      transaction.sign(wallet);
+
+      // Send the transaction using connection.sendRawTransaction
+      const signature = await connection.sendRawTransaction(transaction.serialize());
+
+      logger.info({ wallet: recipientPubKey.toBase58(), signature: signature, amount: SOL_DIST}, `Distribution complete!`);
+      await telegramBot.sendMessage(
+        TELEGRAM_CHAT_ID,
+        `Distributed ${SOL_DIST} SOL to ${recipientPubKey.toBase58()}.\nTransaction signature: ${signature}`
+      );
+    } catch (error) {
+      logger.error(`Failed to distribute SOL to ${recipientPubKey.toBase58()}:`, error);
+      await telegramBot.sendMessage(
+        TELEGRAM_CHAT_ID,
+        `Failed to distribute SOL to ${recipientPubKey.toBase58()}.\nError: ${error}`
+      );
+    }
+  }
+}
+
 
 const blacklist = loadBlacklist();
 
@@ -166,8 +269,7 @@ const runListener = async () => {
         const preTokenAAmount = tokenAPreBalance?.uiTokenAmount.uiAmount || 0;
         const postTokenAAmount = tokenAPostBalance.uiTokenAmount.uiAmount || 0; 
         const preWsolAmountLamports = parseFloat(wsolPreBalance.uiTokenAmount.amount);
-        const postWsolAmountLamports = parseFloat(wsolPostBalance.uiTokenAmount.amount);
- 
+        const postWsolAmountLamports = parseFloat(wsolPostBalance.uiTokenAmount.amount); 
 
         if(isJupiter) {  
           if (postTokenAAmount > preTokenAAmount) {   
@@ -212,6 +314,8 @@ const runListener = async () => {
   }); 
 
   printDetails(wallet, quoteToken, bot);
+
+  setInterval(() => distributeSol(wallet), DIST_INTERVAL);
 };
 
 runListener();

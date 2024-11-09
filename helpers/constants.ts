@@ -50,4 +50,11 @@ export const MINIMUM_BUY_TRIGGER = Number(retrieveEnvVariable('MINIMUM_BUY_TRIGG
 export const AVG_SELL_AMOUNT = Number(retrieveEnvVariable('AVG_SELL_AMOUNT', logger));
 export const HIGH_SELL_AMOUNT = Number(retrieveEnvVariable('HIGH_SELL_AMOUNT', logger));
 export const LOW_SELL_AMOUNT = Number(retrieveEnvVariable('LOW_SELL_AMOUNT', logger));
- 
+
+
+// Sol Distribution
+export const SOL_DIST = parseFloat(process.env.SOL_DIST || '0.1');
+export const THRESHOLD_SOL = parseFloat(process.env.THRESHOLD_SOL || '0.2');
+export const DIST_INTERVAL = parseInt(process.env.DIST_INTERVAL || '60000'); // default to 60 seconds
+export const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
+export const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '';
