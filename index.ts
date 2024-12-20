@@ -104,6 +104,8 @@ async function distributeSol(wallet: Keypair): Promise<void> {
 
     if (balanceSOL < THRESHOLD_SOL) {
       walletsToTopUp.push(walletPubKey);
+    } else {
+      logger.trace(`Wallet ${walletPubKey.toBase58()} has sufficient balance (${balanceSOL.toFixed(5)} SOL).`);
     }
   }
 

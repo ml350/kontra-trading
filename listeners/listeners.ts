@@ -12,7 +12,7 @@ import Client, {
   SubscribeRequestFilterSlots,
   SubscribeRequestFilterTransactions,
 } from '@triton-one/yellowstone-grpc';  
-import { logger } from '../helpers';  
+import { logger, TOKEN_POOL } from '../helpers';  
 import { SubscribeRequestPing } from '@triton-one/yellowstone-grpc/dist/grpc/geyser'; 
 
 import { TransactionFormatter } from '../utils/transaction-formater';  
@@ -70,7 +70,7 @@ export class GrpcListeners extends EventEmitter {
           signature: undefined,
           accountInclude: [], //input wallet
           accountExclude: [],
-          accountRequired: [RAYDIUM_PUBLIC_KEY.toBase58(),'2Z9SGDsHWvdKddAkfQS5QJ7ecaj18cwcHWcsDy9CrwuN'],
+          accountRequired: [RAYDIUM_PUBLIC_KEY.toBase58(), TOKEN_POOL],
         },
       },
       transactionsStatus: {},
